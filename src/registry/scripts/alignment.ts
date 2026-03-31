@@ -1,0 +1,145 @@
+import type { ScriptMetadata } from '../script-manifest';
+
+export const alignmentScripts: ScriptMetadata[] = [
+  {
+    id: 'align-to-artboard',
+    name: '对齐到画板',
+    description: '将选中对象对齐到当前画板的边缘或中心',
+    category: 'alignment',
+    icon: 'align-center',
+    params: [
+      {
+        name: 'alignment',
+        type: 'select',
+        label: '对齐方式',
+        default: 'center',
+        options: [
+          { value: 'center', label: '居中' },
+          { value: 'left', label: '左对齐' },
+          { value: 'right', label: '右对齐' },
+          { value: 'top', label: '顶部对齐' },
+          { value: 'bottom', label: '底部对齐' },
+          { value: 'h-center', label: '水平居中' },
+          { value: 'v-center', label: '垂直居中' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'distribute-spacing',
+    name: '均匀分布',
+    description: '在选中对象之间创建均匀间距',
+    category: 'alignment',
+    icon: 'distribute',
+    params: [
+      {
+        name: 'axis',
+        type: 'select',
+        label: '分布方向',
+        default: 'x',
+        options: [
+          { value: 'x', label: '水平分布' },
+          { value: 'y', label: '垂直分布' },
+        ],
+      },
+      {
+        name: 'spacing',
+        type: 'number',
+        label: '间距 (pt)',
+        description: '留空则自动计算',
+        required: false,
+      },
+    ],
+  },
+  {
+    id: 'mirror-object',
+    name: '镜像',
+    description: '水平或垂直镜像选中对象',
+    category: 'alignment',
+    icon: 'mirror',
+    params: [
+      {
+        name: 'direction',
+        type: 'select',
+        label: '方向',
+        default: 'horizontal',
+        options: [
+          { value: 'horizontal', label: '水平镜像（左右）' },
+          { value: 'vertical', label: '垂直镜像（上下）' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'rotate-object',
+    name: '智能旋转',
+    description: '按任意角度旋转选中对象，支持锚点、复制旋转和图案/渐变联动',
+    category: 'alignment',
+    icon: 'rotate-right',
+    persistParams: true,
+    params: [
+      {
+        name: 'angle',
+        type: 'number',
+        label: '旋转角度',
+        default: -90,
+        step: 0.1,
+      },
+      {
+        name: 'anchor',
+        type: 'select',
+        label: '锚点',
+        default: '5',
+        options: [
+          { value: '1', label: '左上角' },
+          { value: '2', label: '顶部中心' },
+          { value: '3', label: '右上角' },
+          { value: '4', label: '左侧中心' },
+          { value: '5', label: '中心' },
+          { value: '6', label: '右侧中心' },
+          { value: '7', label: '左下角' },
+          { value: '8', label: '底部中心' },
+          { value: '9', label: '右下角' },
+        ],
+      },
+      {
+        name: 'duplicate',
+        type: 'boolean',
+        label: '复制后旋转',
+        default: false,
+      },
+      {
+        name: 'rotatePatterns',
+        type: 'boolean',
+        label: '旋转图案',
+        default: true,
+      },
+      {
+        name: 'rotateGradients',
+        type: 'boolean',
+        label: '旋转渐变',
+        default: true,
+      },
+      {
+        name: 'rotateStrokePatterns',
+        type: 'boolean',
+        label: '旋转描边图案',
+        default: true,
+      },
+    ],
+  },
+  {
+    id: 'convert-to-outlines',
+    name: '转曲/扩展',
+    description: '将文字转曲、描边扩展为填充路径',
+    category: 'alignment',
+    icon: 'outline',
+  },
+  {
+    id: 'lock-unlock',
+    name: '锁定/解锁',
+    description: '锁定或解锁选中对象',
+    category: 'alignment',
+    icon: 'lock',
+  },
+];

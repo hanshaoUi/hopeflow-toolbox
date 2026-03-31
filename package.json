@@ -1,0 +1,48 @@
+{
+  "name": "hopeflow-toolbox",
+  "version": "3.1.2",
+  "description": "HopeFlow Toolbox v3.1.2 - Professional Illustrator Plugin",
+  "private": true,
+  "scripts": {
+    "dev": "webpack serve --config build/webpack.config.js --mode development",
+    "build": "webpack --config build/webpack.config.js --mode production",
+    "build:scripts": "ts-node build/encrypt-scripts.ts",
+    "build:obfuscate": "ts-node build/obfuscate.ts",
+    "build:zxp": "bash build/package-zxp.sh",
+    "build:all": "npm run build && npm run build:scripts && npm run build:obfuscate && npm run build:zxp",
+    "package:release": "bash build/package-release.sh",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.13.5",
+    "crypto-js": "^4.2.0",
+    "fuse.js": "^7.0.0",
+    "node-machine-id": "^1.1.12",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "copy-webpack-plugin": "^12.0.0",
+    "css-loader": "^6.9.0",
+    "eslint": "^8.56.0",
+    "html-webpack-plugin": "^5.6.0",
+    "javascript-obfuscator": "^4.1.0",
+    "style-loader": "^3.3.0",
+    "ts-loader": "^9.5.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.0",
+    "webpack-dev-server": "^4.15.0",
+    "webpack-obfuscator": "^3.5.0"
+  }
+}

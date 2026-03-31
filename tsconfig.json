@@ -1,0 +1,64 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@panel": [
+        "panel"
+      ],
+      "@panel/*": [
+        "panel/*"
+      ],
+      "@bridge": [
+        "bridge"
+      ],
+      "@bridge/*": [
+        "bridge/*"
+      ],
+      "@security": [
+        "security"
+      ],
+      "@security/*": [
+        "security/*"
+      ],
+      "@registry": [
+        "registry"
+      ],
+      "@registry/*": [
+        "registry/*"
+      ]
+    },
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "server",
+    "src/scripts"
+  ]
+}

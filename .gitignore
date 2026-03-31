@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# IDE
+.claude/
+.vscode/
+.idea/
+
+# Sibling projects
+hopeflow-docs/
+hopeflow-website/
+hopeflow-website-react/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="6.0" ExtensionBundleId="com.hopeflow.toolbox"
+    ExtensionBundleVersion="3.0.9"
+    ExtensionBundleName="HopeFlow Toolbox"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <ExtensionList>
+        <Extension Id="com.hopeflow.toolbox.panel" Version="3.0.9" />
+    </ExtensionList>
+
+    <ExecutionEnvironment>
+        <HostList>
+            <Host Name="ILST" Version="[23.0,99.9]" />
+        </HostList>
+        <LocaleList>
+            <Locale Code="All" />
+        </LocaleList>
+        <RequiredRuntimeList>
+            <RequiredRuntime Name="CSXS" Version="9.0" />
+        </RequiredRuntimeList>
+    </ExecutionEnvironment>
+
+    <DispatchInfoList>
+        <Extension Id="com.hopeflow.toolbox.panel">
+            <DispatchInfo>
+                <Resources>
+                    <MainPath>./dist/index.html</MainPath>
+                    <ScriptPath>./src/scripts/_runtime/bootstrap.jsx</ScriptPath>
+                    <CEFCommandLine>
+                        <Parameter>--allow-file-access-from-files</Parameter>
+                        <Parameter>--enable-nodejs</Parameter>
+                        <Parameter>--mixed-context</Parameter>
+                    </CEFCommandLine>
+                </Resources>
+                <Lifecycle>
+                    <AutoVisible>true</AutoVisible>
+                </Lifecycle>
+                <UI>
+                    <Type>Panel</Type>
+                    <Menu>HopeFlow Toolbox</Menu>
+                    <Geometry>
+                        <Size>
+                            <Height>600</Height>
+                            <Width>320</Width>
+                        </Size>
+                        <MinSize>
+                            <Height>400</Height>
+                            <Width>320</Width>
+                        </MinSize>
+                        <MaxSize>
+                            <Height>2400</Height>
+                            <Width>600</Width>
+                        </MaxSize>
+                    </Geometry>
+                    <Icons>
+                        <Icon Type="Normal">./assets/icon-light.png</Icon>
+                        <Icon Type="RollOver">./assets/icon-light-hover.png</Icon>
+                        <Icon Type="DarkNormal">./assets/icon-dark.png</Icon>
+                        <Icon Type="DarkRollOver">./assets/icon-dark-hover.png</Icon>
+                    </Icons>
+                </UI>
+            </DispatchInfo>
+        </Extension>
+    </DispatchInfoList>
+</ExtensionManifest>
