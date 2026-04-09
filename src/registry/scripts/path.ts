@@ -42,4 +42,33 @@ export const pathScripts: ScriptMetadata[] = [
       { name: 'layerName', type: 'string', label: '图层名称', default: '矩形' },
     ],
   },
+  {
+    id: 'extend-along-path',
+    name: '沿路径延长',
+    description: '将选中的开放路径沿端点切线方向延长指定长度，闭合路径将被跳过。',
+    category: 'path',
+    icon: 'vector',
+    params: [
+      {
+        name: 'startLength',
+        type: 'number',
+        label: '起点延长 (mm)',
+        default: 10,
+        description: '从路径起点沿切线方向向外延长的距离，设为 0 则不延长。',
+        min: 0,
+        step: 0.5,
+        suffix: 'mm',
+      },
+      {
+        name: 'endLength',
+        type: 'number',
+        label: '终点延长 (mm)',
+        default: 10,
+        description: '从路径终点沿切线方向向外延长的距离，设为 0 则不延长。',
+        min: 0,
+        step: 0.5,
+        suffix: 'mm',
+      },
+    ],
+  },
 ];

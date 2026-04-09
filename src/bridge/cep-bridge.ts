@@ -189,7 +189,8 @@ export class CEPBridge implements BridgeAPI {
         console.log('[CEPBridge] Parsed result:', parsed);
         return {
           success: parsed.success !== false,
-          data: parsed.data || parsed,
+          data: parsed.data,
+          error: parsed.error,
           executionTime,
         };
       } catch {
