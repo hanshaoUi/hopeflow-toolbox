@@ -242,7 +242,7 @@ export const batchScripts: ScriptMetadata[] = [
         ],
       },
       { name: 'fontSize', type: 'number', label: '标号字号 (pt)', default: 12, min: 1, step: 0.5 },
-      { name: 'offset', type: 'number', label: '标号偏移 (mm)', default: 2, min: 0, step: 0.5 },
+      { name: 'offset', type: 'number', label: '标号偏移 (mm)', default: 0, min: 0, step: 0.5 },
     ],
   },
 ];

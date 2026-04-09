@@ -38,7 +38,8 @@
         if (isNaN(startNum)) startNum = 1;
         if (isNaN(increment) || increment === 0) increment = 1;
         if (isNaN(fontSize) || fontSize <= 0) fontSize = 12;
-        if (isNaN(offsetMm) || offsetMm < 0) offsetMm = 2;
+        if (isNaN(offsetMm)) offsetMm = 0;
+        if (offsetMm < 0) offsetMm = 0;
 
         var offsetPt = offsetMm * mmToPt;
         var padLength = startRaw.replace(/^-/, '').length;
@@ -107,21 +108,18 @@
         }
 
         function sortItems(items) {
-            var tolerance = 1;
             items.sort(function (a, b) {
                 if (sortOrder === 'column') {
-                    var dx = a.centerX - b.centerX;
-                    if (Math.abs(dx) > tolerance) {
-                        return a.centerX - b.centerX;
+                    if (Math.abs(a.centerX - b.centerX) > 1) {
+                        return b.centerY - a.centerY;
                     }
-                    return b.centerY - a.centerY;
+                    return a.centerX - b.centerX;
                 }
 
-                var dy = a.centerY - b.centerY;
-                if (Math.abs(dy) > tolerance) {
-                    return b.centerY - a.centerY;
+                if (Math.abs(a.centerX - b.centerX) > 1) {
+                    return a.centerX - b.centerX;
                 }
-                return a.centerX - b.centerX;
+                return b.centerY - a.centerY;
             });
         }
 
@@ -168,6 +166,23 @@
             }
         }
 
+        function centerTextFrame(textFrame, centerX, centerY) {
+            try {
+                var gb = textFrame.geometricBounds;
+                if (gb && gb.length === 4) {
+                    var currentCenterX = (gb[0] + gb[2]) / 2;
+                    var currentCenterY = (gb[1] + gb[3]) / 2;
+                    textFrame.translate(centerX - currentCenterX, centerY - currentCenterY);
+                    return;
+                }
+            } catch (e) {}
+
+            try {
+                textFrame.left = centerX;
+                textFrame.top = centerY;
+            } catch (e2) {}
+        }
+
         var selected = [];
         for (var s = 0; s < selection.length; s++) {
             var current = selection[s];
@@ -208,11 +223,10 @@
                 label.textRange.characterAttributes.size = fontSize;
                 label.textRange.characterAttributes.fillColor = labelColor;
                 try {
-                    label.textRange.paragraphAttributes.justification = Justification.LEFT;
+                    label.textRange.paragraphAttributes.justification = Justification.CENTER;
                 } catch (e) {}
 
-                label.left = b.left - offsetPt;
-                label.top = b.top + offsetPt + fontSize;
+                centerTextFrame(label, b.centerX + offsetPt, b.centerY + offsetPt);
 
                 var group = itemLayer.groupItems.add();
                 group.name = numberText;
