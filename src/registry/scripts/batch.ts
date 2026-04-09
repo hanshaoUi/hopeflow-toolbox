@@ -219,4 +219,30 @@ export const batchScripts: ScriptMetadata[] = [
       { name: 'colGap', type: 'number', label: '列间距(mm)', default: 1 },
     ],
   },
+  {
+    id: 'object-number-group',
+    name: '对象标号编组',
+    description: '按顺序为选中对象添加编号标签，并将编号与对象编组绑定',
+    category: 'batch',
+    icon: 'list-numbers',
+    persistParams: true,
+    params: [
+      { name: 'prefix', type: 'string', label: '前缀' },
+      { name: 'suffix', type: 'string', label: '后缀' },
+      { name: 'startNum', type: 'string', label: '起始编号', default: '1' },
+      { name: 'increment', type: 'number', label: '增量', default: 1, min: 1, step: 1 },
+      {
+        name: 'sortOrder',
+        type: 'select',
+        label: '排序',
+        default: 'row',
+        options: [
+          { value: 'row', label: 'Z 字形（行优先）' },
+          { value: 'column', label: 'N 字形（列优先）' },
+        ],
+      },
+      { name: 'fontSize', type: 'number', label: '标号字号 (pt)', default: 12, min: 1, step: 0.5 },
+      { name: 'offset', type: 'number', label: '标号偏移 (mm)', default: 2, min: 0, step: 0.5 },
+    ],
+  },
 ];
