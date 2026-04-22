@@ -433,6 +433,12 @@ interface ScriptCardProps {
     onToggle?: () => void;
 }
 
+interface PreviewSwatchItem {
+    name: string;
+    preview: string;
+    detail?: string;
+}
+
 // Scripts that use undo-based preview (manual trigger)
 const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {};
 
@@ -462,6 +468,7 @@ const SPECIAL_UI_SCRIPTS = new Set([
     'text-style-rules',
     'paragraph-layout',
     'auto-number',
+    'random-palette-fill',
     'make-size',
     'matrix-clone',
     'smart-clone-replace',
@@ -557,6 +564,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const [layerMetaLoading, setLayerMetaLoading] = useState(false);
     const [layerMetaError, setLayerMetaError] = useState<string | null>(null);
     const [layerSearch, setLayerSearch] = useState('');
+    const [swatchList, setSwatchList] = useState<PreviewSwatchItem[]>([]);
+    const [swatchListLoading, setSwatchListLoading] = useState(false);
+    const [swatchListError, setSwatchListError] = useState<string | null>(null);
+    const [swatchQuery, setSwatchQuery] = useState('');
+    const [swatchAnchorName, setSwatchAnchorName] = useState('');
 
     // --- Make-size real-time preview ---
     const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1076,6 +1088,60 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         if (script.id !== 'multi-layer-selector' || !isExpanded) return;
         loadLayerMeta(false);
     }, [script.id, isExpanded, loadLayerMeta]);
+
+    const loadSwatchList = useCallback(async (force = false) => {
+        if (script.id !== 'random-palette-fill') return;
+        if (!isExpanded) return;
+        if (!force && swatchList.length > 0) return;
+
+        setSwatchListLoading(true);
+        setSwatchListError(null);
+
+        const unwrapSwatches = (payload: any): PreviewSwatchItem[] => {
+            if (!payload) return [];
+            if (Array.isArray(payload)) return payload;
+            if (Array.isArray(payload.swatches)) return payload.swatches;
+            if (payload.data && Array.isArray(payload.data.swatches)) return payload.data.swatches;
+            return [];
+        };
+
+        try {
+            const bridge = await getBridge();
+            const res = await bridge.executeScript({
+                scriptId: 'list-swatches',
+                scriptPath: './src/scripts/color/list-swatches.jsx',
+                args: {},
+            });
+
+            const raw = unwrapSwatches(res.data);
+            const seen: Record<string, true> = {};
+            const cleaned = raw
+                .filter((x): x is PreviewSwatchItem => !!x && typeof x.name === 'string')
+                .map((x) => ({
+                    name: x.name.trim(),
+                    preview: typeof x.preview === 'string' && x.preview ? x.preview : '#cccccc',
+                    detail: typeof x.detail === 'string' ? x.detail : '',
+                }))
+                .filter((x) => {
+                    if (!x.name || seen[x.name]) return false;
+                    seen[x.name] = true;
+                    return true;
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            setSwatchList(cleaned);
+            setSwatchListLoading(false);
+            setSwatchListError(cleaned.length ? null : '当前文档没有可用色板');
+        } catch (e: any) {
+            setSwatchListLoading(false);
+            setSwatchListError(e?.message || '读取色板失败');
+        }
+    }, [isExpanded, params, script.id, swatchList.length]);
+
+    useEffect(() => {
+        if (script.id !== 'random-palette-fill' || !isExpanded) return;
+        loadSwatchList(false);
+    }, [script.id, isExpanded, loadSwatchList]);
 
     const handleMainClick = () => {
         if (isExpandable) {
@@ -2060,6 +2126,228 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                     </div>
 
                     <SuccessButton className="btn btn-primary" onClick={handleExecuteInline} disabled={isExecuting} style={{ width: '100%' }}>
+                        {isExecuting ? <><span className="spinner" /> 执行中...</> : '执行'}
+                    </SuccessButton>
+                </div>
+            );
+        }
+
+        if (script.id === 'random-palette-fill') {
+            const paletteValue = String(params['palette'] || '');
+            const fieldParams = script.params?.filter((p) => p.name !== 'palette' && p.type !== 'boolean') || [];
+            const boolParams = script.params?.filter((p) => p.name !== 'palette' && p.type === 'boolean') || [];
+            const paletteEntries = splitPaletteEntries(paletteValue);
+            const selectedEntries = new Set(paletteEntries.map((entry) => entry.toLowerCase()));
+            const filteredSwatches = swatchQuery.trim()
+                ? swatchList.filter((item) => item.name.toLowerCase().includes(swatchQuery.trim().toLowerCase()))
+                : swatchList;
+
+            const setPaletteEntries = (entries: string[]) => {
+                setParams((prev) => ({ ...prev, palette: entries.join('\n') }));
+            };
+
+            const handleLoadAllSwatches = () => {
+                if (!swatchList.length) return;
+                setPaletteEntries(swatchList.map((item) => item.name));
+                if (!swatchAnchorName && swatchList.length > 0) {
+                    setSwatchAnchorName(swatchList[0].name);
+                }
+            };
+
+            const handleClearPalette = () => {
+                setPaletteEntries([]);
+                setSwatchAnchorName('');
+            };
+
+            const togglePaletteEntry = (entry: string, mode?: 'replace' | 'toggle') => {
+                const key = entry.toLowerCase();
+
+                if (mode === 'toggle') {
+                    if (selectedEntries.has(key)) {
+                        setPaletteEntries(paletteEntries.filter((item) => item.toLowerCase() !== key));
+                    } else {
+                        setPaletteEntries([...paletteEntries, entry]);
+                    }
+                    setSwatchAnchorName(entry);
+                    return;
+                }
+
+                setPaletteEntries([entry]);
+                setSwatchAnchorName(entry);
+            };
+
+            const selectPaletteRange = (entry: string) => {
+                const targetIndex = filteredSwatches.findIndex((item) => item.name === entry);
+                if (targetIndex < 0) {
+                    setPaletteEntries([entry]);
+                    setSwatchAnchorName(entry);
+                    return;
+                }
+
+                const anchorIndex = swatchAnchorName
+                    ? filteredSwatches.findIndex((item) => item.name === swatchAnchorName)
+                    : -1;
+                const startIndex = anchorIndex >= 0 ? anchorIndex : targetIndex;
+                const from = Math.min(startIndex, targetIndex);
+                const to = Math.max(startIndex, targetIndex);
+                const rangeEntries = filteredSwatches.slice(from, to + 1).map((item) => item.name);
+
+                setPaletteEntries(rangeEntries);
+                if (!swatchAnchorName) {
+                    setSwatchAnchorName(entry);
+                }
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div>
+                        <label className="text-xs mb-xs block">当前文档色板</label>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <CompositionInput
+                                type="text"
+                                className="input"
+                                value={swatchQuery}
+                                onChange={(e: any) => setSwatchQuery(String(e.target.value || ''))}
+                                placeholder={swatchListLoading ? '正在读取色板...' : '搜索色板'}
+                            />
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => loadSwatchList(true)}
+                                disabled={swatchListLoading}
+                                style={{ whiteSpace: 'nowrap', padding: '4px 10px' }}
+                            >
+                                {swatchListLoading ? '读取中...' : '刷新'}
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
+                            <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
+                                {swatchListError
+                                    ? swatchListError
+                                    : swatchList.length > 0
+                                        ? `已读取 ${swatchList.length} 个色板。单击单选，Ctrl 单独加减选，Shift 连续多选`
+                                        : '当前文档暂无可读取色板'}
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={handleLoadAllSwatches}
+                                disabled={swatchList.length === 0}
+                                style={{ whiteSpace: 'nowrap', padding: '2px 8px' }}
+                            >
+                                全部载入
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={handleClearPalette}
+                                disabled={paletteEntries.length === 0}
+                                style={{ whiteSpace: 'nowrap', padding: '2px 8px' }}
+                            >
+                                清空
+                            </button>
+                        </div>
+                        {filteredSwatches.length > 0 && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: '6px',
+                                    marginTop: '8px',
+                                    maxHeight: '220px',
+                                    overflowY: 'auto',
+                                    padding: '2px 2px 2px 0',
+                                }}
+                            >
+                                {filteredSwatches.slice(0, 160).map((item) => {
+                                    const active = selectedEntries.has(item.name.toLowerCase());
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={item.name}
+                                            onClick={(e) => {
+                                                if (e.ctrlKey || e.metaKey) {
+                                                    togglePaletteEntry(item.name, 'toggle');
+                                                    return;
+                                                }
+                                                if (e.shiftKey) {
+                                                    selectPaletteRange(item.name);
+                                                    return;
+                                                }
+                                                togglePaletteEntry(item.name, 'replace');
+                                            }}
+                                            title={item.detail || item.name}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '28px',
+                                                height: '28px',
+                                                padding: 0,
+                                                borderRadius: '3px',
+                                                border: active ? '1px solid var(--color-accent)' : '1px solid rgba(255,255,255,0.14)',
+                                                background: item.preview,
+                                                cursor: 'pointer',
+                                                boxShadow: active
+                                                    ? '0 0 0 1px rgba(58,134,255,0.35), inset 0 0 0 1px rgba(255,255,255,0.18)'
+                                                    : 'inset 0 0 0 1px rgba(0,0,0,0.12)',
+                                                position: 'relative',
+                                                flex: '0 0 auto',
+                                            }}
+                                        >
+                                            {active && (
+                                                <span
+                                                    style={{
+                                                        position: 'absolute',
+                                                        right: '2px',
+                                                        bottom: '2px',
+                                                        width: '6px',
+                                                        height: '6px',
+                                                        borderRadius: '999px',
+                                                        background: 'var(--color-accent)',
+                                                        boxShadow: '0 0 0 1px rgba(0,0,0,0.35)',
+                                                    }}
+                                                />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {fieldParams.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: fieldParams.length === 1 ? '1fr' : 'repeat(2, 1fr)', gap: '8px 10px' }}>
+                            {fieldParams.map((p) => (
+                                <div key={p.name}>
+                                    <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                                        {p.label}
+                                    </label>
+                                    {renderParamInput(p, params, setParams)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {boolParams.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {boolParams.map((p) => {
+                                const active = params[p.name] ?? p.default ?? false;
+                                return (
+                                    <span
+                                        key={p.name}
+                                        style={chipStyle(active)}
+                                        title={p.description || ''}
+                                        onClick={() => setParams((prev) => ({ ...prev, [p.name]: !active }))}
+                                    >
+                                        {p.label}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <SuccessButton className="btn btn-primary" onClick={handleExecute} disabled={isExecuting} style={{ width: '100%' }}>
                         {isExecuting ? <><span className="spinner" /> 执行中...</> : '执行'}
                     </SuccessButton>
                 </div>
@@ -3580,6 +3868,39 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     }
 };
 
+function splitPaletteEntries(input: string): string[] {
+    const entries: string[] = [];
+    let buffer = '';
+    let depth = 0;
+
+    const push = () => {
+        const cleaned = buffer.trim();
+        if (cleaned) entries.push(cleaned);
+        buffer = '';
+    };
+
+    for (const ch of String(input || '')) {
+        if (ch === '(') {
+            depth++;
+            buffer += ch;
+            continue;
+        }
+        if (ch === ')') {
+            depth = Math.max(0, depth - 1);
+            buffer += ch;
+            continue;
+        }
+        if ((ch === '\n' || ch === '\r' || ch === ';' || ch === '；' || ch === ',') && depth === 0) {
+            push();
+            continue;
+        }
+        buffer += ch;
+    }
+
+    push();
+    return entries;
+}
+
 function renderParamInput(
     param: any,
     params: Record<string, any>,
@@ -3669,8 +3990,3 @@ function renderParamInput(
             );
     }
 }
-
-
-
-
-
