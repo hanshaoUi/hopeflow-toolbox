@@ -1,7 +1,7 @@
 {
   "name": "hopeflow-toolbox",
-  "version": "3.1.2",
-  "description": "HopeFlow Toolbox v3.1.2 - Professional Illustrator Plugin",
+  "version": "3.1.3",
+  "description": "HopeFlow Toolbox v3.1.3 - Professional Illustrator Plugin",
   "private": true,
   "scripts": {
     "dev": "webpack serve --config build/webpack.config.js --mode development",

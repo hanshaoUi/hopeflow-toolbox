@@ -2,6 +2,8 @@
 
 HopeFlow Toolbox 是一个面向 Adobe Illustrator 生产场景的 CEP 插件，聚焦重复性高、规则明确、需要批量化处理的工作流。
 
+当前稳定版：**v3.1.3**
+
 ## 功能概览
 
 - 覆盖对齐、画板、批量处理、颜色、文字、导出、测量、路径、排料等多个工具分类
@@ -9,7 +11,7 @@ HopeFlow Toolbox 是一个面向 Adobe Illustrator 生产场景的 CEP 插件，
 - 兼容 Adobe Illustrator CS6 及以上版本
 - 前端面板基于 React + TypeScript，宿主脚本基于 ExtendScript
 
-## 最近更新
+## v3.1.3 更新内容
 
 - 新增“拼接切割”功能
   - 支持纵切 / 横切
@@ -22,6 +24,8 @@ HopeFlow Toolbox 是一个面向 Adobe Illustrator 生产场景的 CEP 插件，
 - 同步增强测量与批量处理相关脚本
   - 面积、路径长度、尺寸标注能力更新
   - 批量缩放与对象编号等脚本同步调整
+- 统一同步发布版本号
+  - `package.json`、`package-lock.json`、CEP `manifest.xml` 现已统一为 `v3.1.3`
 
 ## 安装
 
