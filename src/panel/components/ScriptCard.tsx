@@ -439,6 +439,12 @@ interface PreviewSwatchItem {
     detail?: string;
 }
 
+interface InlineResultMessage {
+    prefix: string;
+    highlight?: string;
+    suffix?: string;
+}
+
 // Scripts that use undo-based preview (manual trigger)
 const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {};
 
@@ -473,6 +479,7 @@ const SPECIAL_UI_SCRIPTS = new Set([
     'matrix-clone',
     'smart-clone-replace',
     'export-large-scale',
+    'split-overlap-artboards',
     'ai-enhance',
     'open-pdf',
     'data-merge',
@@ -498,6 +505,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const { executeScript, isExecuting, validateParams } = useScriptRunner();
     const [params, setParams] = useState<Record<string, any>>({});
     const [error, setError] = useState<string | null>(null);
+    const [inlineResultMessage, setInlineResultMessage] = useState<InlineResultMessage | null>(null);
     const [presetNameInput, setPresetNameInput] = useState('');
     const [selectedPresetName, setSelectedPresetName] = useState('');
 
@@ -1159,6 +1167,26 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         return await executeScript(script, overrideParams);
     }, [executeScript, script]);
 
+    const getInlineSuccessMessage = useCallback((result: any) => {
+        const data = result?.data;
+        if (data && typeof data === 'object' && typeof data.message === 'string' && data.message.trim()) {
+            return { prefix: data.message.trim() };
+        }
+
+        if (script.id === 'count-selected-objects') {
+            const count = Number(data?.count);
+            if (Number.isFinite(count) && count >= 0) {
+                return {
+                    prefix: '当前选中',
+                    highlight: String(count),
+                    suffix: '个对象',
+                };
+            }
+        }
+
+        return null;
+    }, [script.id]);
+
     useEffect(() => {
         if (showSuccess) {
             const timer = setTimeout(() => setShowSuccess(false), 2000);
@@ -1166,9 +1194,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
     }, [showSuccess]);
 
+    useEffect(() => {
+        setInlineResultMessage(null);
+    }, [script.id]);
+
     // Live preview state and effect
     const handleExecute = async () => {
         setError(null);
+        setInlineResultMessage(null);
 
         if (script.params) {
             const validationError = validateParams(script, params);
@@ -1193,6 +1226,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         if (!result.success) {
             setError(result.error || '执行失败');
         } else {
+            setInlineResultMessage(getInlineSuccessMessage(result));
             setShowSuccess(true);
         }
     };
@@ -1295,6 +1329,53 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                 }}>
                     <div className="alert alert-error" style={{ marginBottom: 0 }}>
                         {error}
+                    </div>
+                </div>
+            )}
+
+            {(!isExpanded && !isExpandable && inlineResultMessage) && (
+                <div style={{
+                    padding: '0 var(--spacing-lg) var(--spacing-md)',
+                    animation: 'slideDown 0.2s ease-out'
+                }}>
+                    <div
+                        style={{
+                            marginBottom: 0,
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid color-mix(in srgb, var(--color-success) 35%, var(--color-border))',
+                            background: 'color-mix(in srgb, var(--color-success) 10%, var(--color-bg-secondary))',
+                            color: 'var(--color-text-primary)',
+                            fontSize: '12px',
+                            lineHeight: 1.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        <span>{inlineResultMessage.prefix}</span>
+                        {inlineResultMessage.highlight && (
+                            <span
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    minWidth: '28px',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                    background: 'color-mix(in srgb, var(--color-accent) 18%, white)',
+                                    border: '1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border))',
+                                    color: 'var(--color-accent)',
+                                    fontWeight: 700,
+                                    fontSize: '12px',
+                                    lineHeight: 1.2,
+                                }}
+                            >
+                                {inlineResultMessage.highlight}
+                            </span>
+                        )}
+                        {inlineResultMessage.suffix && <span>{inlineResultMessage.suffix}</span>}
                     </div>
                 </div>
             )}

@@ -333,6 +333,11 @@ function _executeDimensions(p, layName, PREVIEW_GROUP) {
     color.yellow = _num(p.yellow, 100);
     color.black = _num(p.black, 10);
 
+    var autoSize = _bool(p.autoSize);
+    var visualScale = _num(p.visualScale, 100);
+    if (!isFinite(visualScale) || visualScale <= 0) visualScale = 100;
+    var visualFactor = visualScale / 100;
+
     var tsize = _num(p.fontSize, 12);
     var decimals = _num(p.decimals, 2);
     var LineW = _num(p.lineWeight, 0.5);
@@ -362,6 +367,17 @@ function _executeDimensions(p, layName, PREVIEW_GROUP) {
 
     if (!doTop && !doBottom && !doLeft && !doRight) return;
     if (!eachSizes && !betweenSize && !entiretySize) return;
+
+    if (autoSize) {
+        var autoMetrics = _estimateAutoDimensionMetrics(sel, includeStroke, visualFactor);
+        tsize = autoMetrics.textSize;
+        LineW = autoMetrics.lineWeight;
+        setgap = autoMetrics.gap;
+        Gaps = setgap;
+        Gap = setgap;
+        limitLen = autoMetrics.limitLen;
+        asize = autoMetrics.arrowSize;
+    }
 
     // --- Set up annotation layer ---
     var specsLayer;
@@ -934,6 +950,61 @@ function _getUnitStr(index) {
     return (index >= 0 && index < units.length) ? units[index] : "auto";
 }
 
+function _clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+}
+
+function _estimateAutoDimensionMetrics(sel, includeStroke, visualFactor) {
+    var overall = null;
+    var shortestSide = Infinity;
+
+    for (var i = 0; i < sel.length; i += 1) {
+        var bounds = NO_CLIP_BOUNDS(sel[i]);
+        var left = includeStroke ? bounds[4] : bounds[0];
+        var top = includeStroke ? bounds[5] : bounds[1];
+        var right = includeStroke ? bounds[6] : bounds[2];
+        var bottom = includeStroke ? bounds[7] : bounds[3];
+        var width = Math.abs(right - left);
+        var height = Math.abs(top - bottom);
+        var side = Math.min(width, height);
+
+        if (isFinite(side) && side > 0) {
+            shortestSide = Math.min(shortestSide, side);
+        }
+
+        if (!overall) {
+            overall = [left, top, right, bottom];
+        } else {
+            if (left < overall[0]) overall[0] = left;
+            if (top > overall[1]) overall[1] = top;
+            if (right > overall[2]) overall[2] = right;
+            if (bottom < overall[3]) overall[3] = bottom;
+        }
+    }
+
+    var overallShortSide = 120;
+    if (overall) {
+        overallShortSide = Math.min(Math.abs(overall[2] - overall[0]), Math.abs(overall[1] - overall[3]));
+    }
+    if (!isFinite(shortestSide) || shortestSide <= 0) {
+        shortestSide = overallShortSide;
+    }
+
+    var reference = Math.max(shortestSide, overallShortSide * 0.6);
+    if (!isFinite(reference) || reference <= 0) reference = 120;
+
+    var textSize = _clamp(reference * 0.18, 6, 72) * visualFactor;
+    textSize = _clamp(textSize, 4, 144);
+
+    return {
+        textSize: textSize,
+        lineWeight: _clamp(textSize * 0.045, 0.25, 8),
+        gap: _clamp(textSize * 0.35, 2, 64),
+        limitLen: _clamp(textSize * 0.75, 4, 80),
+        arrowSize: _clamp(textSize * 0.55, 3, 48)
+    };
+}
+
 
 // ================================================================
 // HEADLESS WRAPPER (called from CEP panel via $.hopeflow runtime)
@@ -947,8 +1018,10 @@ if (typeof $.hopeflow !== 'undefined') {
         left: args.left === 'true' || args.left === true,
         right: args.right === 'true' || args.right === true,
         mode: args.mode || 'each',
+        autoSize: args.autoSize === 'true' || args.autoSize === true,
         fontSize: args.fontSize,
         unitIndex: args.unitIndex,
+        visualScale: args.visualScale,
         decimals: args.decimals,
         lineWeight: args.lineWeight,
         gap: args.gap,

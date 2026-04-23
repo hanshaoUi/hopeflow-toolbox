@@ -1,83 +1,89 @@
 # HopeFlow Toolbox
 
-HopeFlow Toolbox is an Adobe Illustrator CEP plugin focused on repetitive production work.
+HopeFlow Toolbox 是一个面向 Adobe Illustrator 生产场景的 CEP 插件，聚焦重复性高、规则明确、需要批量化处理的工作流。
 
-HopeFlow Toolbox 是一款面向重复性生产工作的 Adobe Illustrator CEP 插件。
+## 功能概览
 
-- 85+ tools across alignment, batch actions, color, text, export, measurement, path and nesting workflows
-- 85+ 个工具，覆盖对齐、批量处理、颜色、文本、导出、测量、路径和排料等工作流
-- Supports Windows and macOS
-- 支持 Windows 和 macOS
-- Works with Illustrator CS6 and newer
-- 兼容 Adobe Illustrator CS6 及更高版本
+- 覆盖对齐、画板、批量处理、颜色、文字、导出、测量、路径、排料等多个工具分类
+- 适用于 Windows 和 macOS
+- 兼容 Adobe Illustrator CS6 及以上版本
+- 前端面板基于 React + TypeScript，宿主脚本基于 ExtendScript
 
-## Links / 链接
+## 最近更新
 
-- Docs: [https://hanshaoui.github.io/hopeflow-docs/](https://hanshaoui.github.io/hopeflow-docs/)
-- Docs / 文档站点: [https://hanshaoui.github.io/hopeflow-docs/](https://hanshaoui.github.io/hopeflow-docs/)
-- Latest release: [v3.1.2](https://github.com/hanshaoUi/hopeflow-toolbox/releases/tag/v3.1.2)
-- Latest release / 最新版本: [v3.1.2](https://github.com/hanshaoUi/hopeflow-toolbox/releases/tag/v3.1.2)
-- Download zip: [HopeFlow-Toolbox-v3.1.2.zip](https://github.com/hanshaoUi/hopeflow-toolbox/releases/download/v3.1.2/HopeFlow-Toolbox-v3.1.2.zip)
-- Download zip / 下载压缩包: [HopeFlow-Toolbox-v3.1.2.zip](https://github.com/hanshaoUi/hopeflow-toolbox/releases/download/v3.1.2/HopeFlow-Toolbox-v3.1.2.zip)
+- 新增“拼接切割”功能
+  - 支持纵切 / 横切
+  - 支持按固定单片尺寸切割，搭接包含在单片尺寸内
+  - 支持比例换算，适配缩小稿文件
+  - 支持末片不足时按实际剩余尺寸生成
+  - 支持生成后清理旧画板
+  - 支持分片画板命名规则、前后缀、起始编号和尺寸后缀
+  - 修复命名输入框在中文输入法下偶发无法正常输入的问题
+- 同步增强测量与批量处理相关脚本
+  - 面积、路径长度、尺寸标注能力更新
+  - 批量缩放与对象编号等脚本同步调整
 
-## Installation / 安装
+## 安装
 
-1. Download the latest release zip / 下载最新发布的压缩包.
-2. Extract `HopeFlow-Toolbox-v3.1.2.zip` / 解压 `HopeFlow-Toolbox-v3.1.2.zip`.
-3. Run `install.bat` on Windows or `install.sh` on macOS / Windows 运行 `install.bat`，macOS 运行 `install.sh`.
-4. Restart Illustrator / 重启 Illustrator.
-5. Open `Window > Extensions > HopeFlow Toolbox` / 打开 `Window > Extensions > HopeFlow Toolbox`.
+1. 下载发布包并解压
+2. Windows 运行 `install.bat`
+3. macOS 运行 `install.sh`
+4. 重启 Illustrator
+5. 在 Illustrator 中打开 `窗口 > 扩展 > HopeFlow Toolbox`
 
-Detailed instructions are in the docs site / 详细说明见文档站点。
+文档站点：
 
-- Windows / Windows 安装指南: [Install guide](https://hanshaoui.github.io/hopeflow-docs/guide/install-windows)
-- macOS / macOS 安装指南: [Install guide](https://hanshaoui.github.io/hopeflow-docs/guide/install-macos)
-- Uninstall / 卸载指南: [Uninstall guide](https://hanshaoui.github.io/hopeflow-docs/guide/uninstall)
+- [https://hanshaoui.github.io/hopeflow-docs/](https://hanshaoui.github.io/hopeflow-docs/)
 
-## Development / 开发
+## 开发
 
-Requirements / 开发环境要求:
+环境要求：
 
 - Node.js 20+
 - npm
-- Adobe Illustrator with CEP enabled / 启用 CEP 的 Adobe Illustrator
+- 已启用 CEP 的 Adobe Illustrator
 
-Install dependencies / 安装依赖:
+安装依赖：
 
 ```bash
 npm install
 ```
 
-Run development mode / 运行开发模式:
+启动开发模式：
 
 ```bash
 npm run dev
 ```
 
-Create a production build / 创建生产构建:
+构建生产包：
 
 ```bash
 npm run build
 ```
 
-Useful commands / 常用命令:
+常用检查命令：
 
 ```bash
 npm run lint
 npm run typecheck
 ```
 
-## Repository Layout / 仓库结构
+## 项目结构
 
 ```text
-CSXS/          CEP manifest / CEP 清单
-build/         Webpack config and packaging scripts / Webpack 配置与打包脚本
-dist/          Built panel assets / 构建后的面板资源
-src/           Panel source, registry and Illustrator scripts / 面板源码、脚本注册表和 Illustrator 脚本
-install.bat    Windows installer helper / Windows 安装辅助脚本
-install.sh     macOS installer helper / macOS 安装辅助脚本
+CSXS/          CEP 清单
+build/         Webpack 配置与打包脚本
+dist/          构建产物
+src/           面板源码、脚本注册与 Illustrator JSX 脚本
+install.bat    Windows 安装脚本
+install.sh     macOS 安装脚本
 ```
 
-## License / 许可证
+## 发布信息
+
+- 仓库地址：[https://github.com/hanshaoUi/hopeflow-toolbox](https://github.com/hanshaoUi/hopeflow-toolbox)
+- Release 页面：[https://github.com/hanshaoUi/hopeflow-toolbox/releases](https://github.com/hanshaoUi/hopeflow-toolbox/releases)
+
+## License
 
 MIT

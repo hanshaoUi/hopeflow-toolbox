@@ -49,4 +49,11 @@ export const exportScripts: ScriptMetadata[] = [
     category: 'export',
     icon: 'external-link',
   },
+  {
+    id: 'split-overlap-artboards',
+    name: '拼接切割',
+    description: '按固定单片尺寸切割当前画板，搭接包含在单片内，并生成可导出的分片画板',
+    category: 'export',
+    icon: 'crop',
+  },
 ];

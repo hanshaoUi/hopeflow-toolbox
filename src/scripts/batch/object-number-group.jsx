@@ -31,6 +31,8 @@
         var startNum = parseInt(startRaw, 10);
         var increment = parseInt(args.increment, 10);
         var sortOrder = args.sortOrder || 'row';
+        var arcMode = args.arcMode === true || args.arcMode === 'true';
+        var labelStyle = String(args.labelStyle || 'plain-black');
         var fontSize = parseFloat(args.fontSize);
         var offsetMm = parseFloat(args.offset);
         var mmToPt = 2.83464567;
@@ -107,10 +109,105 @@
             return true;
         }
 
+        function getArcCenter(items) {
+            var sumX = 0;
+            var sumY = 0;
+
+            for (var i = 0; i < items.length; i++) {
+                sumX += items[i].centerX;
+                sumY += items[i].centerY;
+            }
+
+            return {
+                x: sumX / items.length,
+                y: sumY / items.length
+            };
+        }
+
+        function normalizeAngle(angle) {
+            var twoPi = Math.PI * 2;
+            while (angle < 0) angle += twoPi;
+            while (angle >= twoPi) angle -= twoPi;
+            return angle;
+        }
+
+        function circularDistance(startAngle, angle, clockwise) {
+            var twoPi = Math.PI * 2;
+            var diff;
+
+            if (clockwise) {
+                diff = startAngle - angle;
+            } else {
+                diff = angle - startAngle;
+            }
+
+            while (diff < 0) diff += twoPi;
+            while (diff >= twoPi) diff -= twoPi;
+
+            return diff;
+        }
+
+        function getArcSortConfig(items, arcCenter) {
+            var startIndex = 0;
+            for (var i = 1; i < items.length; i++) {
+                var a = items[i];
+                var s = items[startIndex];
+                if (a.centerX < s.centerX - 0.0001 || (Math.abs(a.centerX - s.centerX) <= 0.0001 && a.centerY < s.centerY)) {
+                    startIndex = i;
+                }
+            }
+
+            var startAngle = normalizeAngle(Math.atan2(items[startIndex].centerY - arcCenter.y, items[startIndex].centerX - arcCenter.x));
+            var clockwiseMax = 0;
+            var counterClockwiseMax = 0;
+
+            for (var j = 0; j < items.length; j++) {
+                var angle = normalizeAngle(Math.atan2(items[j].centerY - arcCenter.y, items[j].centerX - arcCenter.x));
+                var clockwiseDistance = circularDistance(startAngle, angle, true);
+                var counterClockwiseDistance = circularDistance(startAngle, angle, false);
+                if (clockwiseDistance > clockwiseMax) clockwiseMax = clockwiseDistance;
+                if (counterClockwiseDistance > counterClockwiseMax) counterClockwiseMax = counterClockwiseDistance;
+            }
+
+            return {
+                startAngle: startAngle,
+                clockwise: clockwiseMax <= counterClockwiseMax
+            };
+        }
+
         function sortItems(items) {
+            var arcCenter = null;
+            var arcSortConfig = null;
+            if (arcMode && items.length > 1) {
+                arcCenter = getArcCenter(items);
+                arcSortConfig = getArcSortConfig(items, arcCenter);
+            }
+
             items.sort(function (a, b) {
-                if (sortOrder === 'column') {
+                if (arcMode) {
+                    var angleA = normalizeAngle(Math.atan2(a.centerY - arcCenter.y, a.centerX - arcCenter.x));
+                    var angleB = normalizeAngle(Math.atan2(b.centerY - arcCenter.y, b.centerX - arcCenter.x));
+                    var distanceA = circularDistance(arcSortConfig.startAngle, angleA, arcSortConfig.clockwise);
+                    var distanceB = circularDistance(arcSortConfig.startAngle, angleB, arcSortConfig.clockwise);
+
+                    if (Math.abs(distanceA - distanceB) > 0.0001) {
+                        return distanceA - distanceB;
+                    }
+
+                    var radiusA = Math.sqrt(Math.pow(a.centerX - arcCenter.x, 2) + Math.pow(a.centerY - arcCenter.y, 2));
+                    var radiusB = Math.sqrt(Math.pow(b.centerX - arcCenter.x, 2) + Math.pow(b.centerY - arcCenter.y, 2));
+                    if (Math.abs(radiusA - radiusB) > 0.5) {
+                        return radiusA - radiusB;
+                    }
+
                     if (Math.abs(a.centerX - b.centerX) > 1) {
+                        return a.centerX - b.centerX;
+                    }
+                    return b.centerY - a.centerY;
+                }
+
+                if (sortOrder === 'column') {
+                    if (Math.abs(a.centerY - b.centerY) > 1) {
                         return b.centerY - a.centerY;
                     }
                     return a.centerX - b.centerX;
@@ -131,23 +228,58 @@
         }
 
         function makeBlackColor() {
-            var color;
-            try {
-                if (doc.documentColorSpace === DocumentColorSpace.CMYK) {
-                    color = new CMYKColor();
-                    color.cyan = 0;
-                    color.magenta = 0;
-                    color.yellow = 0;
-                    color.black = 100;
-                    return color;
-                }
-            } catch (e) {}
-
-            color = new RGBColor();
+            var color = new RGBColor();
             color.red = 0;
             color.green = 0;
             color.blue = 0;
             return color;
+        }
+
+        function makeRgbColor(r, g, b) {
+            var color = new RGBColor();
+            color.red = r;
+            color.green = g;
+            color.blue = b;
+            return color;
+        }
+
+        function getLabelStyleConfig(styleKey) {
+            var styles = {
+                'plain-black': {
+                    textColor: makeRgbColor(0, 0, 0),
+                    createBadge: false
+                },
+                'plain-white': {
+                    textColor: makeRgbColor(255, 255, 255),
+                    createBadge: false
+                },
+                'badge-white': {
+                    textColor: makeRgbColor(0, 0, 0),
+                    createBadge: true,
+                    badgeFill: makeRgbColor(255, 255, 255),
+                    badgeStroke: makeRgbColor(0, 0, 0),
+                    badgePadding: 4,
+                    badgeStrokeWidth: 1
+                },
+                'badge-black': {
+                    textColor: makeRgbColor(255, 255, 255),
+                    createBadge: true,
+                    badgeFill: makeRgbColor(0, 0, 0),
+                    badgeStroke: makeRgbColor(255, 255, 255),
+                    badgePadding: 4,
+                    badgeStrokeWidth: 1
+                },
+                'badge-green': {
+                    textColor: makeRgbColor(255, 255, 255),
+                    createBadge: true,
+                    badgeFill: makeRgbColor(102, 187, 106),
+                    badgeStroke: makeRgbColor(255, 255, 255),
+                    badgePadding: 4,
+                    badgeStrokeWidth: 1
+                }
+            };
+
+            return styles[styleKey] || styles['plain-black'];
         }
 
         function moveIntoGroup(item, group, place) {
@@ -183,6 +315,37 @@
             } catch (e2) {}
         }
 
+        function createLabelBadge(layer, textFrame, styleConfig) {
+            if (!styleConfig.createBadge) return null;
+
+            try {
+                var gb = textFrame.geometricBounds;
+                if (!gb || gb.length !== 4) return null;
+
+                var textWidth = gb[2] - gb[0];
+                var textHeight = gb[1] - gb[3];
+                var diameter = Math.max(textWidth, textHeight) + (styleConfig.badgePadding * 2);
+                var centerX = (gb[0] + gb[2]) / 2;
+                var centerY = (gb[1] + gb[3]) / 2;
+                var badge = layer.pathItems.ellipse(
+                    centerY + (diameter / 2),
+                    centerX - (diameter / 2),
+                    diameter,
+                    diameter
+                );
+
+                badge.stroked = true;
+                badge.strokeWidth = styleConfig.badgeStrokeWidth;
+                badge.strokeColor = styleConfig.badgeStroke;
+                badge.filled = true;
+                badge.fillColor = styleConfig.badgeFill;
+                badge.name = textFrame.name + '_badge';
+                return badge;
+            } catch (e) {
+                return null;
+            }
+        }
+
         var selected = [];
         for (var s = 0; s < selection.length; s++) {
             var current = selection[s];
@@ -192,7 +355,15 @@
             if (!bounds) continue;
             selected.push({
                 item: current,
-                bounds: bounds
+                bounds: bounds,
+                left: bounds.left,
+                top: bounds.top,
+                right: bounds.right,
+                bottom: bounds.bottom,
+                width: bounds.width,
+                height: bounds.height,
+                centerX: bounds.centerX,
+                centerY: bounds.centerY
             });
         }
 
@@ -204,7 +375,7 @@
 
         doc.selection = null;
 
-        var labelColor = makeBlackColor();
+        var styleConfig = getLabelStyleConfig(labelStyle);
         var createdGroups = [];
         var skipped = 0;
 
@@ -221,17 +392,21 @@
                 label.contents = numberText;
                 label.name = numberText;
                 label.textRange.characterAttributes.size = fontSize;
-                label.textRange.characterAttributes.fillColor = labelColor;
+                label.textRange.characterAttributes.fillColor = styleConfig.textColor;
                 try {
                     label.textRange.paragraphAttributes.justification = Justification.CENTER;
                 } catch (e) {}
 
                 centerTextFrame(label, b.centerX + offsetPt, b.centerY + offsetPt);
+                var badge = createLabelBadge(itemLayer, label, styleConfig);
 
                 var group = itemLayer.groupItems.add();
                 group.name = numberText;
 
                 moveIntoGroup(item, group, ElementPlacement.PLACEATBEGINNING);
+                if (badge) {
+                    moveIntoGroup(badge, group, ElementPlacement.PLACEATEND);
+                }
                 moveIntoGroup(label, group, ElementPlacement.PLACEATEND);
 
                 createdGroups.push(group);

@@ -4,6 +4,7 @@ import { CreateGuidesPanel } from './CreateGuidesPanel';
 
 // Standalone panels: manage their own state entirely, need no props from ScriptCard
 import { LargeScaleExport } from '../components/LargeScaleExport';
+import { SplitOverlapArtboards } from '../components/SplitOverlapArtboards';
 import { AIEnhance } from '../components/AIEnhance';
 import { OpenPDF } from '../components/OpenPDF';
 import { DataMerge } from '../components/DataMerge';
@@ -17,6 +18,7 @@ export const PARAM_PANELS: Record<string, React.FC<ScriptPanelProps>> = {
 // Panels that are fully self-contained (no props needed)
 export const STANDALONE_PANELS: Record<string, React.FC> = {
     'export-large-scale': LargeScaleExport,
+    'split-overlap-artboards': SplitOverlapArtboards,
     'ai-enhance': AIEnhance,
     'open-pdf': OpenPDF,
     'data-merge': DataMerge,
