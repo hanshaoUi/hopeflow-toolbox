@@ -138,6 +138,26 @@
         return prefix + String(artboard.name || ('画板 ' + (artboardIndex + 1)));
     }
 
+    function getUniqueGroupName(container, baseName) {
+        var candidate = String(baseName || 'Group');
+        var suffix = 2;
+        var exists = true;
+
+        while (exists) {
+            exists = false;
+            for (var i = 0; i < container.groupItems.length; i++) {
+                if (container.groupItems[i].name === candidate) {
+                    exists = true;
+                    candidate = baseName + ' (' + suffix + ')';
+                    suffix++;
+                    break;
+                }
+            }
+        }
+
+        return candidate;
+    }
+
     try {
         if (!app.documents.length) {
             return $.hopeflow.utils.returnError('当前没有打开的文档');
@@ -183,7 +203,10 @@
             }
 
             var group = items[0].layer.groupItems.add();
-            group.name = buildGroupName(doc.artboards[artboardIndex], artboardIndex, args);
+            group.name = getUniqueGroupName(
+                items[0].layer,
+                buildGroupName(doc.artboards[artboardIndex], artboardIndex, args)
+            );
 
             for (var j = items.length - 1; j >= 0; j--) {
                 items[j].moveToBeginning(group);
@@ -200,7 +223,8 @@
         return $.hopeflow.utils.returnResult({
             groups: createdGroups.length,
             items: totalItems,
-            artboards: targetIndexes.length
+            artboards: targetIndexes.length,
+            message: '已按画板创建 ' + createdGroups.length + ' 个分组'
         });
     } catch (e) {
         return $.hopeflow.utils.returnError(String(e.message || e));

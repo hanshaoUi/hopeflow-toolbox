@@ -2,6 +2,83 @@ import type { ScriptMetadata } from '../script-manifest';
 
 export const exportScripts: ScriptMetadata[] = [
   {
+    id: 'export-artboard-size-table',
+    name: '导出画板尺寸表格',
+    description: '导出画板尺寸表格，支持按画板/按尺寸汇总、1:X 比例换算，以及 XLSX 图示缩略图',
+    category: 'export',
+    icon: 'table',
+    params: [
+      {
+        name: 'groupMode',
+        type: 'select',
+        label: '编组方式',
+        default: 'artboard',
+        options: [
+          { value: 'artboard', label: '按画板编组' },
+          { value: 'size', label: '按尺寸合并' },
+        ],
+      },
+      {
+        name: 'unit',
+        type: 'select',
+        label: '尺寸单位',
+        default: 'mm',
+        options: [
+          { value: 'mm', label: '毫米 (mm)' },
+          { value: 'cm', label: '厘米 (cm)' },
+          { value: 'in', label: '英寸 (in)' },
+          { value: 'pt', label: '点 (pt)' },
+          { value: 'px', label: '像素 (px)' },
+        ],
+      },
+      {
+        name: 'outputFormat',
+        type: 'select',
+        label: '导出格式',
+        default: 'xlsx',
+        options: [
+          { value: 'xlsx', label: 'XLSX 表格（含图示）' },
+          { value: 'csv', label: 'CSV 表格' },
+        ],
+      },
+      {
+        name: 'outputLocation',
+        type: 'select',
+        label: '导出位置',
+        default: 'document',
+        options: [
+          { value: 'document', label: '文档目录' },
+          { value: 'desktop', label: '桌面' },
+          { value: 'custom', label: '自定义目录（弹窗选择）' },
+        ],
+      },
+      {
+        name: 'scale',
+        type: 'number',
+        label: '比例 (1:X)',
+        default: 1,
+        min: 0.01,
+        step: 0.01,
+      },
+      {
+        name: 'precision',
+        type: 'number',
+        label: '小数位',
+        default: 2,
+        min: 0,
+        max: 6,
+        step: 1,
+      },
+      {
+        name: 'outputName',
+        type: 'string',
+        label: '文件名',
+        default: '',
+        required: false,
+      },
+    ],
+  },
+  {
     id: 'export-large-scale',
     name: '大尺寸导出',
     description: '将缩小制作的文件按比例放大导出，自动分块拼接处理超大尺寸',

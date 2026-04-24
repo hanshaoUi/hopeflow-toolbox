@@ -9,6 +9,7 @@ import { AIEnhance } from '../components/AIEnhance';
 import { OpenPDF } from '../components/OpenPDF';
 import { DataMerge } from '../components/DataMerge';
 import { TextStyleRules } from '../components/TextStyleRules';
+import { ArtboardSizeTableExport } from '../components/ArtboardSizeTableExport';
 
 // Panels that receive params/execution props from ScriptCard
 export const PARAM_PANELS: Record<string, React.FC<ScriptPanelProps>> = {
@@ -23,6 +24,7 @@ export const STANDALONE_PANELS: Record<string, React.FC> = {
     'open-pdf': OpenPDF,
     'data-merge': DataMerge,
     'text-style-rules': TextStyleRules,
+    'export-artboard-size-table': ArtboardSizeTableExport,
 };
 
 // Returns true if a script ID has a registered panel (standalone or param-based)

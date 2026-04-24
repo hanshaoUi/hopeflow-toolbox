@@ -260,6 +260,14 @@ const ICONS: Record<string, React.ReactNode> = {
                 d="M17 8v12m0 0l4-4m-4 4l-4-4" />
         </>
     ),
+    'table': (
+        <>
+            <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <line x1="9" y1="4" x2="9" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <line x1="15" y1="4" x2="15" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </>
+    ),
     'text': (
         <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             d="M4 6h16M12 6v12M8 18h8" />

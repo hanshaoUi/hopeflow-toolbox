@@ -1,7 +1,7 @@
 {
   "name": "hopeflow-toolbox",
-  "version": "3.1.3",
-  "description": "HopeFlow Toolbox v3.1.3 - Professional Illustrator Plugin",
+  "version": "3.1.4",
+  "description": "HopeFlow Toolbox v3.1.4 - Professional Illustrator Plugin",
   "private": true,
   "scripts": {
     "dev": "webpack serve --config build/webpack.config.js --mode development",
@@ -10,6 +10,7 @@
     "build:obfuscate": "ts-node build/obfuscate.ts",
     "build:zxp": "bash build/package-zxp.sh",
     "build:all": "npm run build && npm run build:scripts && npm run build:obfuscate && npm run build:zxp",
+    "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File build/package-windows-release.ps1",
     "package:release": "bash build/package-release.sh",
     "server:dev": "cd server && npm run dev",
     "server:build": "cd server && npm run build",
@@ -19,6 +20,7 @@
   "dependencies": {
     "axios": "^1.13.5",
     "crypto-js": "^4.2.0",
+    "exceljs": "^4.4.0",
     "fuse.js": "^7.0.0",
     "node-machine-id": "^1.1.12",
     "react": "^18.2.0",
