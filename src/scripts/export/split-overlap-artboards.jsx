@@ -293,12 +293,7 @@ function drawPreview(previewData, direction, paddingPt) {
             drawRect(layer, overlapRect, overlapFill, 0.5, overlapFill, 25);
         }
 
-        drawLabel(
-            layer,
-            rects.artboardRect,
-            'S' + ('0' + (segment.index + 1)).slice(-2) + '  ' +
-            (Math.round($.hopeflow.utils.ptToMm(segment.width) * 10) / 10) + 'mm'
-        );
+        drawLabel(layer, rects.artboardRect, previewData.segments[i].name);
     }
 
     layer.locked = true;

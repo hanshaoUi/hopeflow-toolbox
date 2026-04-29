@@ -468,18 +468,30 @@ export const SplitOverlapArtboards: React.FC = () => {
                                 key={segment.index}
                                 style={{
                                     display: 'grid',
-                                    gridTemplateColumns: '48px 1fr auto',
+                                    gridTemplateColumns: '48px minmax(0, 1fr)',
                                     gap: '8px',
-                                    alignItems: 'center',
+                                    alignItems: 'start',
                                 }}
                             >
                                 <span style={{ color: 'var(--color-text-tertiary)' }}>
                                     #{String(segment.index).padStart(2, '0')}
                                 </span>
-                                <span>{segment.startMM} - {segment.endMM} mm</span>
-                                <span style={{ color: 'var(--color-text-tertiary)' }}>
-                                    左搭 {segment.overlapLeftMM} / 右搭 {segment.overlapRightMM}
-                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                    <span
+                                        title={segment.name}
+                                        style={{
+                                            fontWeight: 500,
+                                            color: 'var(--color-text-primary)',
+                                            lineHeight: 1.35,
+                                            overflowWrap: 'anywhere',
+                                        }}
+                                    >
+                                        {segment.name}
+                                    </span>
+                                    <span style={{ color: 'var(--color-text-tertiary)' }}>
+                                        {segment.startMM} - {segment.endMM} mm · 左搭 {segment.overlapLeftMM} / 右搭 {segment.overlapRightMM}
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>

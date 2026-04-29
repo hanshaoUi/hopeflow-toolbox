@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getBridge } from '@bridge';
+import { stitchImages, TileInfo } from '../utils/image-stitcher';
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 interface ExportInfo {
     docName: string;
@@ -31,6 +36,23 @@ const chipSt = (active: boolean): React.CSSProperties => ({
     color: active ? '#fff' : 'var(--color-text-secondary)',
     cursor: 'pointer', fontSize: '11px', transition: 'all 0.15s ease', userSelect: 'none',
 });
+
+const getFormatExt = (value: string) => {
+    const normalized = value.toUpperCase();
+    if (normalized === 'PNG') return 'png';
+    if (normalized === 'TIFF') return 'tif';
+    return 'jpg';
+};
+
+const getStitchFormat = (value: string): 'jpeg' | 'png' | 'tiff' => {
+    const normalized = value.toUpperCase();
+    if (normalized === 'PNG') return 'png';
+    if (normalized === 'TIFF') return 'tiff';
+    return 'jpeg';
+};
+
+const sanitizeFileName = (value: string) =>
+    (value || 'export').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim() || 'export';
 
 export const LargeScaleExport: React.FC = () => {
     const [scale, setScale] = useState(10);
@@ -103,6 +125,11 @@ export const LargeScaleExport: React.FC = () => {
 
         try {
             const bridge = await getBridge();
+            const baseName = sanitizeFileName(info.docName || 'export');
+            const ext = getFormatExt(format);
+            const finalPath = path.join(outputDir, `${baseName}.${ext}`);
+            const tileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hf-large-export-'));
+
             const result = await bridge.executeScript({
                 scriptId: 'export-large-scale',
                 scriptPath: './src/scripts/export/export-large-scale.jsx',
@@ -111,16 +138,48 @@ export const LargeScaleExport: React.FC = () => {
                     scale,
                     dpi: actualDpi,
                     format,
-                    outputDir,
-                    baseName: info.docName || 'export',
+                    outputDir: tileDir,
+                    baseName: 'tile',
                 },
             });
 
             if (result.success && result.data) {
                 const data = result.data as any;
-                const count = data.files?.length || data.totalTiles || 1;
-                const limited = data.scaleLimited ? '（受缩放限制，建议使用 TIFF 格式）' : '';
-                setSuccess(`导出成功，共 ${count} 个文件${limited}`);
+                const tiles = (data.tiles || []) as TileInfo[];
+                const files = (data.files || []) as string[];
+
+                if ((data.totalTiles || files.length || 1) <= 1) {
+                    const sourcePath = files[0] || tiles[0]?.path;
+                    if (!sourcePath) {
+                        throw new Error('未找到导出的图像文件');
+                    }
+                    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+                    fs.renameSync(sourcePath, finalPath);
+                    try { fs.rmdirSync(tileDir); } catch (e) { }
+                    setSuccess(`导出成功：${finalPath}`);
+                    return;
+                }
+
+                setSuccess(`分片导出完成，正在合并 ${tiles.length || files.length} 个分片...`);
+                const stitchResult = await stitchImages({
+                    tiles,
+                    totalWidth: data.exportWidthPx || info.exportSize.widthPx,
+                    totalHeight: data.exportHeightPx || info.exportSize.heightPx,
+                    cols: data.cols || info.tiles.cols,
+                    rows: data.rows || info.tiles.rows,
+                    outputPath: finalPath,
+                    format: getStitchFormat(format),
+                    dpi: actualDpi,
+                    quality: 100,
+                    onProgress: (_progress, message) => setSuccess(message),
+                });
+
+                if (!stitchResult.success) {
+                    throw new Error(stitchResult.error || '合并分片失败');
+                }
+
+                try { fs.rmdirSync(tileDir); } catch (e) { }
+                setSuccess(`导出成功：${finalPath}`);
             } else {
                 setError(result.error || '导出失败');
             }

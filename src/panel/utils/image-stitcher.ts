@@ -10,6 +10,114 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
+function crc32(buffer: Buffer): number {
+    var crc = 0xffffffff;
+    for (var i = 0; i < buffer.length; i++) {
+        crc ^= buffer[i];
+        for (var j = 0; j < 8; j++) {
+            crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+        }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+}
+
+function makePngChunk(type: string, data: Buffer): Buffer {
+    const typeBuffer = Buffer.from(type, 'ascii');
+    const lengthBuffer = Buffer.alloc(4);
+    lengthBuffer.writeUInt32BE(data.length, 0);
+    const crcBuffer = Buffer.alloc(4);
+    crcBuffer.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
+    return Buffer.concat([lengthBuffer, typeBuffer, data, crcBuffer]);
+}
+
+function applyPngDpiMetadata(outputPath: string, dpi: number) {
+    const input = fs.readFileSync(outputPath);
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    if (input.length < 8 || !input.subarray(0, 8).equals(signature)) return;
+
+    const ppm = Math.round(dpi / 0.0254);
+    const physData = Buffer.alloc(9);
+    physData.writeUInt32BE(ppm, 0);
+    physData.writeUInt32BE(ppm, 4);
+    physData[8] = 1;
+    const physChunk = makePngChunk('pHYs', physData);
+
+    let offset = 8;
+    const chunks: Buffer[] = [input.subarray(0, 8)];
+    let inserted = false;
+
+    while (offset + 8 <= input.length) {
+        const length = input.readUInt32BE(offset);
+        const type = input.toString('ascii', offset + 4, offset + 8);
+        const chunkEnd = offset + 12 + length;
+        if (chunkEnd > input.length) return;
+
+        if (type === 'pHYs') {
+            if (!inserted) {
+                chunks.push(physChunk);
+                inserted = true;
+            }
+        } else {
+            if (!inserted && type === 'IDAT') {
+                chunks.push(physChunk);
+                inserted = true;
+            }
+            chunks.push(input.subarray(offset, chunkEnd));
+        }
+        offset = chunkEnd;
+    }
+
+    fs.writeFileSync(outputPath, Buffer.concat(chunks));
+}
+
+function applyJpegDpiMetadata(outputPath: string, dpi: number) {
+    const input = fs.readFileSync(outputPath);
+    if (input.length < 4 || input[0] !== 0xff || input[1] !== 0xd8) return;
+
+    let offset = 2;
+    while (offset + 4 < input.length && input[offset] === 0xff) {
+        const marker = input[offset + 1];
+        if (marker === 0xda || marker === 0xd9) break;
+        const segmentLength = input.readUInt16BE(offset + 2);
+        const segmentEnd = offset + 2 + segmentLength;
+        if (segmentEnd > input.length) break;
+
+        if (marker === 0xe0 && input.toString('ascii', offset + 4, offset + 9) === 'JFIF\0') {
+            const output = Buffer.from(input);
+            output[offset + 11] = 1;
+            output.writeUInt16BE(dpi, offset + 12);
+            output.writeUInt16BE(dpi, offset + 14);
+            fs.writeFileSync(outputPath, output);
+            return;
+        }
+        offset = segmentEnd;
+    }
+
+    const app0 = Buffer.alloc(18);
+    app0[0] = 0xff;
+    app0[1] = 0xe0;
+    app0.writeUInt16BE(16, 2);
+    app0.write('JFIF\0', 4, 'ascii');
+    app0[9] = 1;
+    app0[10] = 1;
+    app0[11] = 1;
+    app0.writeUInt16BE(dpi, 12);
+    app0.writeUInt16BE(dpi, 14);
+    app0[16] = 0;
+    app0[17] = 0;
+    fs.writeFileSync(outputPath, Buffer.concat([input.subarray(0, 2), app0, input.subarray(2)]));
+}
+
+function applyDpiMetadata(outputPath: string, format: 'jpeg' | 'png' | 'tiff', dpi?: number) {
+    if (!dpi || dpi <= 0) return;
+    try {
+        if (format === 'jpeg') applyJpegDpiMetadata(outputPath, Math.round(dpi));
+        if (format === 'png') applyPngDpiMetadata(outputPath, Math.round(dpi));
+    } catch (e) {
+        console.warn('Failed to apply DPI metadata:', e);
+    }
+}
+
 export interface TileInfo {
     path: string;
     row: number;
@@ -18,6 +126,10 @@ export interface TileInfo {
     y: number;
     width: number;
     height: number;
+    cropX?: number;
+    cropY?: number;
+    cropWidth?: number;
+    cropHeight?: number;
 }
 
 export interface StitchOptions {
@@ -28,6 +140,7 @@ export interface StitchOptions {
     rows: number;
     outputPath: string;
     format: 'jpeg' | 'png' | 'tiff';
+    dpi?: number;
     quality?: number;
     onProgress?: (progress: number, message: string) => void;
     bridge?: any; // CEP Bridge for Illustrator stitching
@@ -292,7 +405,13 @@ async function stitchWithPython(options: StitchOptions): Promise<{ success: bool
         const tilesJson = JSON.stringify(sortedTiles.map(t => ({
             path: t.path,
             x: t.x,
-            y: t.y
+            y: t.y,
+            width: t.width,
+            height: t.height,
+            cropX: t.cropX || 0,
+            cropY: t.cropY || 0,
+            cropWidth: t.cropWidth || t.width,
+            cropHeight: t.cropHeight || t.height
         })));
 
         const pythonScript = `
@@ -317,7 +436,15 @@ result = Image.new('RGB', (width, height), (255, 255, 255))
 for tile in tiles:
     try:
         img = Image.open(tile['path'])
-        result.paste(img, (tile['x'], tile['y']))
+        cropped = img.crop((
+            tile['cropX'],
+            tile['cropY'],
+            tile['cropX'] + tile['cropWidth'],
+            tile['cropY'] + tile['cropHeight']
+        ))
+        if cropped.size != (tile['width'], tile['height']):
+            cropped = cropped.resize((tile['width'], tile['height']))
+        result.paste(cropped, (tile['x'], tile['y']))
         img.close()
     except Exception as e:
         print(f"ERROR: Failed to load {tile['path']}: {e}")
@@ -384,7 +511,10 @@ except Exception as e:
  */
 function checkPythonPIL(): Promise<boolean> {
     return new Promise((resolve) => {
-        exec('python3 -c "from PIL import Image" 2>&1 || python -c "from PIL import Image" 2>&1', (error: any) => {
+        const command = process.platform === 'win32'
+            ? 'python -c "from PIL import Image"'
+            : 'python3 -c "from PIL import Image" 2>&1 || python -c "from PIL import Image"';
+        exec(command, (error: any) => {
             resolve(!error);
         });
     });
@@ -429,7 +559,21 @@ async function stitchWithCanvas(options: StitchOptions): Promise<{ success: bool
 
                     const img = new Image();
                     img.onload = () => {
-                        ctx.drawImage(img, tile.x, tile.y);
+                        const cropX = tile.cropX || 0;
+                        const cropY = tile.cropY || 0;
+                        const cropWidth = tile.cropWidth || tile.width || img.width;
+                        const cropHeight = tile.cropHeight || tile.height || img.height;
+                        ctx.drawImage(
+                            img,
+                            cropX,
+                            cropY,
+                            Math.min(cropWidth, img.width - cropX),
+                            Math.min(cropHeight, img.height - cropY),
+                            tile.x,
+                            tile.y,
+                            tile.width || cropWidth,
+                            tile.height || cropHeight
+                        );
                         resolve();
                     };
                     img.onerror = (e) => reject(new Error(`加载分块失败: ${tile.path}, 错误: ${e}`));
@@ -476,6 +620,13 @@ async function stitchWithCanvas(options: StitchOptions): Promise<{ success: bool
  */
 export async function stitchImages(options: StitchOptions): Promise<{ success: boolean; error?: string }> {
     const { onProgress, bridge } = options;
+    const errors: string[] = [];
+    const finalize = (result: { success: boolean; error?: string }) => {
+        if (result.success) {
+            applyDpiMetadata(options.outputPath, options.format, options.dpi);
+        }
+        return result;
+    };
 
     console.log('[ImageStitcher] Starting stitch...');
     onProgress?.(0, '检查拼接工具...');
@@ -487,19 +638,24 @@ export async function stitchImages(options: StitchOptions): Promise<{ success: b
         const result = await stitchWithIllustrator(options);
         console.log('[ImageStitcher] Illustrator result:', result);
         if (result.success) {
-            return result;
+            return finalize(result);
         }
+        if (result.error) errors.push(result.error);
         console.warn('[ImageStitcher] Illustrator stitching failed, trying alternatives...');
     }
 
     // 2. 尝试 ImageMagick
     const hasImageMagick = await checkImageMagick();
+    const requiresCrop = options.tiles.some((tile) => tile.cropWidth || tile.cropHeight || tile.cropX || tile.cropY);
     console.log('[ImageStitcher] ImageMagick available:', hasImageMagick);
-    if (hasImageMagick) {
+    if (hasImageMagick && !requiresCrop) {
         onProgress?.(5, '使用 ImageMagick 拼接...');
         const result = await stitchWithImageMagick(options);
         console.log('[ImageStitcher] ImageMagick result:', result);
-        return result;
+        if (result.success) {
+            return finalize(result);
+        }
+        if (result.error) errors.push(result.error);
     }
 
     // 3. 尝试 Python PIL
@@ -509,7 +665,10 @@ export async function stitchImages(options: StitchOptions): Promise<{ success: b
         onProgress?.(5, '使用 Python PIL 拼接...');
         const result = await stitchWithPython(options);
         console.log('[ImageStitcher] Python PIL result:', result);
-        return result;
+        if (result.success) {
+            return finalize(result);
+        }
+        if (result.error) errors.push(result.error);
     }
 
     // 4. 回退到 Canvas 方案
@@ -517,7 +676,13 @@ export async function stitchImages(options: StitchOptions): Promise<{ success: b
     onProgress?.(5, '使用 Canvas 拼接...');
     const result = await stitchWithCanvas(options);
     console.log('[ImageStitcher] Canvas result:', result);
-    return result;
+    if (result.success || !errors.length) {
+        return finalize(result);
+    }
+    return {
+        success: false,
+        error: `${result.error || 'Canvas stitch failed'}; previous attempts: ${errors.join(' | ')}`
+    };
 }
 
 /**

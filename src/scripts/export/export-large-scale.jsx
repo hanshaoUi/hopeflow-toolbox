@@ -27,6 +27,8 @@ var scale = parseFloat(args.scale) || 10;
 var dpi = parseInt(args.dpi) || 72;
 var format = (args.format || 'PNG').toUpperCase();
 var maxPixels = parseInt(args.maxPixels) || 8000;
+var overlapPx = parseInt(args.overlapPx, 10);
+if (isNaN(overlapPx) || overlapPx < 0) overlapPx = 4;
 
 // Illustrator export scale limit (~776%, use 700% to be safe)
 var MAX_EXPORT_SCALE = 700;
@@ -36,6 +38,17 @@ var MAX_EXPORT_SCALE = 700;
 var exportWidthPx = Math.round(widthPt * scale * dpi / 72);
 var exportHeightPx = Math.round(heightPt * scale * dpi / 72);
 var requiredScalePercent = scale * 100;
+var effectiveScalePercent = format === 'TIFF'
+    ? requiredScalePercent
+    : Math.min(requiredScalePercent, MAX_EXPORT_SCALE);
+var actualExportWidthPx = format === 'TIFF'
+    ? exportWidthPx
+    : Math.round(widthPt * (effectiveScalePercent / 100) * dpi / 72);
+var actualExportHeightPx = format === 'TIFF'
+    ? exportHeightPx
+    : Math.round(heightPt * (effectiveScalePercent / 100) * dpi / 72);
+var pxPerPt = (effectiveScalePercent / 100) * dpi / 72;
+var overlapPt = pxPerPt > 0 ? overlapPx / pxPerPt : 0;
 
 // Calculate tiles needed
 // By pixel limit
@@ -94,6 +107,7 @@ if (mode === 'export') {
 
     var originalABIndex = doc.artboards.getActiveArtboardIndex();
     var exportedFiles = [];
+    var exportedTiles = [];
     var tileWidthPt = widthPt / cols;
     var tileHeightPt = heightPt / rows;
 
@@ -105,9 +119,13 @@ if (mode === 'export') {
                 var tileTop = abRect[1] - row * tileHeightPt;
                 var tileRight = Math.min(tileLeft + tileWidthPt, abRect[2]);
                 var tileBottom = Math.max(tileTop - tileHeightPt, abRect[3]);
+                var exportTileLeft = Math.max(abRect[0], tileLeft - overlapPt);
+                var exportTileTop = Math.min(abRect[1], tileTop + overlapPt);
+                var exportTileRight = Math.min(abRect[2], tileRight + overlapPt);
+                var exportTileBottom = Math.max(abRect[3], tileBottom - overlapPt);
 
                 // Create temporary artboard for this tile
-                var tempAB = doc.artboards.add([tileLeft, tileTop, tileRight, tileBottom]);
+                var tempAB = doc.artboards.add([exportTileLeft, exportTileTop, exportTileRight, exportTileBottom]);
                 var tempABIndex = doc.artboards.length - 1;
                 doc.artboards.setActiveArtboardIndex(tempABIndex);
 
@@ -120,7 +138,7 @@ if (mode === 'export') {
                 var outFile;
 
                 if (format === 'PNG') {
-                    var tileScale = Math.min(scale * 100, MAX_EXPORT_SCALE);
+                    var tileScale = effectiveScalePercent;
                     var pngOpts = new ExportOptionsPNG24();
                     pngOpts.artBoardClipping = true;
                     pngOpts.horizontalScale = tileScale;
@@ -130,7 +148,7 @@ if (mode === 'export') {
                     outFile = new File(outputFolder.fsName + '/' + fileName + '.png');
                     doc.exportFile(outFile, ExportType.PNG24, pngOpts);
                 } else if (format === 'JPEG' || format === 'JPG') {
-                    var tileScale = Math.min(scale * 100, MAX_EXPORT_SCALE);
+                    var tileScale = effectiveScalePercent;
                     var jpgOpts = new ExportOptionsJPEG();
                     jpgOpts.artBoardClipping = true;
                     jpgOpts.horizontalScale = tileScale;
@@ -155,7 +173,25 @@ if (mode === 'export') {
                     doc.exportFile(outFile, ExportType.TIFF, tiffOpts);
                 }
 
+                var x1 = Math.round((actualExportWidthPx * col) / cols);
+                var y1 = Math.round((actualExportHeightPx * row) / rows);
+                var x2 = Math.round((actualExportWidthPx * (col + 1)) / cols);
+                var y2 = Math.round((actualExportHeightPx * (row + 1)) / rows);
+
                 exportedFiles.push(outFile.fsName);
+                exportedTiles.push({
+                    path: outFile.fsName,
+                    row: row,
+                    col: col,
+                    x: x1,
+                    y: y1,
+                    width: x2 - x1,
+                    height: y2 - y1,
+                    cropX: Math.max(0, Math.round((tileLeft - exportTileLeft) * pxPerPt)),
+                    cropY: Math.max(0, Math.round((exportTileTop - tileTop) * pxPerPt)),
+                    cropWidth: x2 - x1,
+                    cropHeight: y2 - y1
+                });
 
                 // Remove temporary artboard
                 doc.artboards.remove(tempABIndex);
@@ -167,6 +203,11 @@ if (mode === 'export') {
 
         return $.hopeflow.utils.returnResult({
             files: exportedFiles,
+            tiles: exportedTiles,
+            exportWidthPx: actualExportWidthPx,
+            exportHeightPx: actualExportHeightPx,
+            requestedExportWidthPx: exportWidthPx,
+            requestedExportHeightPx: exportHeightPx,
             totalTiles: totalTiles,
             cols: cols,
             rows: rows,
