@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtensionManifest Version="6.0" ExtensionBundleId="com.hopeflow.toolbox"
-    ExtensionBundleVersion="3.1.403"
+    ExtensionBundleVersion="3.1.404"
     ExtensionBundleName="HopeFlow Toolbox"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
     <ExtensionList>
-        <Extension Id="com.hopeflow.toolbox.panel" Version="3.1.403" />
+        <Extension Id="com.hopeflow.toolbox.panel" Version="3.1.404" />
     </ExtensionList>
 
     <ExecutionEnvironment>

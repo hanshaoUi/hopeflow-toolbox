@@ -2,11 +2,11 @@
 
 :root {
   /* Colors - Adobe Spectrum inspired */
-  --color-bg-primary: #1e1e1e;
-  --color-bg-secondary: #252525;
-  --color-bg-tertiary: #2d2d2d;
-  --color-bg-hover: #323232;
-  --color-bg-active: #3a3a3a;
+  --color-bg-primary: #535353;
+  --color-bg-secondary: #454545;
+  --color-bg-tertiary: #333333;
+  --color-bg-hover: #606060;
+  --color-bg-active: #6a6a6a;
 
   --color-border: #404040;
   --color-border-hover: #505050;

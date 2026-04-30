@@ -8,9 +8,11 @@ import {
 } from '@registry/script-manifest';
 import { CATEGORIES } from '@registry/categories';
 import { useSettings } from './hooks/useSettings';
+import * as AIEngine from './services/ai-engine';
 import './styles/theme.css';
 
 const SETTINGS_ID = '__settings__';
+let engineWarmupStarted = false;
 
 export const App: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(
@@ -76,6 +78,16 @@ export const App: React.FC = () => {
             update('sidebarExpanded', sidebarExpanded);
         } catch { /* ignore */ }
     }, [sidebarExpanded]);
+
+    useEffect(() => {
+        if (engineWarmupStarted) return;
+        engineWarmupStarted = true;
+        window.setTimeout(() => {
+            AIEngine.startEngine((message) => console.log('[AI Engine Warmup]', message)).catch((error) => {
+                console.warn('[AI Engine Warmup] failed:', error);
+            });
+        }, 2500);
+    }, []);
 
     // ─── Main Render ──────────────────────────────────────────────────────────────────────────────────────────────
     return (

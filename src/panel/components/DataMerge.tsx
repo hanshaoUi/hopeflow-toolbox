@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import fs from 'fs';
 import path from 'path';
 import { getBridge } from '@bridge';
+import * as AIEngine from '../services/ai-engine';
 
 interface CsvData {
     headers: string[];
@@ -32,6 +33,7 @@ interface Mapping {
 
 interface ExportSettings {
     format: 'PDF' | 'PNG' | 'JPG';
+    pdfMode: 'python' | 'separate';
     outputFolder: string;
     fileNamePattern: string;
     dpi: number;
@@ -208,6 +210,34 @@ function isValidHexColor(value: string) {
     return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value || '').trim());
 }
 
+function sanitizeFileBase(value: string) {
+    const base = String(value || 'data-merge').trim() || 'data-merge';
+    return base.replace(/[:/\\*?"><|]/g, '_');
+}
+
+function formatElapsed(startTime: number) {
+    return ((Date.now() - startTime) / 1000).toFixed(1);
+}
+
+function cleanupBackgroundPdf(templateData: any) {
+    try {
+        const backgroundPdf = templateData?.backgroundPdf;
+        if (typeof backgroundPdf === 'string' && backgroundPdf.endsWith('_background.pdf') && fs.existsSync(backgroundPdf)) {
+            fs.unlinkSync(backgroundPdf);
+        }
+    } catch {
+        // best effort cleanup only
+    }
+    try {
+        const foregroundPdf = templateData?.foregroundPdf;
+        if (typeof foregroundPdf === 'string' && foregroundPdf.endsWith('_foreground.pdf') && fs.existsSync(foregroundPdf)) {
+            fs.unlinkSync(foregroundPdf);
+        }
+    } catch {
+        // best effort cleanup only
+    }
+}
+
 const Seg: React.FC<{
     items: { key: string; label: string }[];
     value: string;
@@ -285,7 +315,7 @@ export const DataMerge: React.FC = () => {
     const [scanning, setScanning] = useState(false);
     const [maps, setMaps] = useState<Mapping[]>([]);
 
-    const [exp, setExp] = useState<ExportSettings>({ format: 'PDF', outputFolder: '', fileNamePattern: '{#}', dpi: 300 });
+    const [exp, setExp] = useState<ExportSettings>({ format: 'PDF', pdfMode: 'python', outputFolder: '', fileNamePattern: '{#}', dpi: 300 });
     const [textRules, setTextRules] = useState<TextStyleRule[]>([]);
     const [exMode, setExMode] = useState<'ds' | 'exp'>('exp');
     const [busy, setBusy] = useState(false);
@@ -510,7 +540,8 @@ export const DataMerge: React.FC = () => {
         }
 
         setBusy(true);
-        setMsg({ t: 'info', s: '正在创建数据集...' });
+        setMsg({ t: '', s: '' });
+        const startedAt = Date.now();
 
         try {
             const bridge = await getBridge();
@@ -528,7 +559,7 @@ export const DataMerge: React.FC = () => {
 
             if (result.success) {
                 const data = result.data as any;
-                setMsg({ t: 'ok', s: `已创建 ${data?.datasetsCreated ?? '?'} 个数据集` });
+                setMsg({ t: 'ok', s: `已创建 ${data?.datasetsCreated ?? '?'} 个数据集，用时 ${formatElapsed(startedAt)} 秒` });
             } else {
                 setMsg({ t: 'err', s: result.error || '创建失败' });
             }
@@ -556,42 +587,114 @@ export const DataMerge: React.FC = () => {
 
         setBusy(true);
         setProg({ c: 0, t: csv.rows.length });
+        setMsg({ t: '', s: '' });
+        const startedAt = Date.now();
 
         const bridge = await getBridge();
-        const activeMappings = maps.filter((item) => item.type !== 'UNMAPPED');
+        const activeMappings = maps.filter((item) => item.type !== 'UNMAPPED' && item.column.trim() !== '');
         let successCount = 0;
         let failCount = 0;
+        const templateBaseName = sanitizeFileBase(csvName ? path.basename(csvName, path.extname(csvName)) : 'data-merge');
 
-        for (let i = 0; i < csv.rows.length; i++) {
-            setProg({ c: i + 1, t: csv.rows.length });
-            setMsg({ t: 'info', s: `导出 ${i + 1} / ${csv.rows.length}` });
+        if (exp.format === 'PDF' && exp.pdfMode === 'python') {
+            let pythonTemplateData: any = null;
+            try {
+                const templateResult = await bridge.executeScript({
+                    scriptId: 'data-merge',
+                    scriptPath: './src/scripts/batch/data-merge.jsx',
+                    args: {
+                        mode: 'exportPythonTemplate',
+                        mappings: activeMappings,
+                        headers: csv.headers,
+                        exportSettings: exp,
+                        templateName: templateBaseName,
+                    },
+                });
+
+                if (!templateResult.success || !templateResult.data) {
+                    setBusy(false);
+                    setMsg({ t: 'err', s: templateResult.error || '高速模板导出失败' });
+                    return;
+                }
+
+                pythonTemplateData = templateResult.data;
+
+                const engineReady = await AIEngine.startEngine();
+                if (!engineReady) {
+                    cleanupBackgroundPdf(pythonTemplateData);
+                    const status = await AIEngine.getEngineStatus();
+                    setBusy(false);
+                    setMsg({ t: 'err', s: status.running ? 'Python 引擎已运行，但面板连接失败。请停止后重新启动引擎。' : 'Python 引擎启动失败，请检查 Python 依赖或端口占用。' });
+                    return;
+                }
+
+                const outputPath = path.join(exp.outputFolder, `${templateBaseName}.pdf`);
+                const renderResult = await AIEngine.renderDataMergePdf(
+                    pythonTemplateData,
+                    csv.headers,
+                    csv.rows,
+                    outputPath,
+                    csvDir
+                );
+
+                setBusy(false);
+                setProg({ c: csv.rows.length, t: csv.rows.length });
+                if (renderResult.success) {
+                    setMsg({ t: 'ok', s: `高速 PDF 生成完成：${renderResult.pages || csv.rows.length} 页，用时 ${formatElapsed(startedAt)} 秒` });
+                } else {
+                    setMsg({ t: 'err', s: renderResult.error || 'Python PDF 生成失败' });
+                }
+                cleanupBackgroundPdf(pythonTemplateData);
+                return;
+            } catch (error: any) {
+                cleanupBackgroundPdf(pythonTemplateData);
+                setBusy(false);
+                setMsg({ t: 'err', s: error.message || 'Python 高速导出失败' });
+                return;
+            }
+        }
+
+        const exportMode = 'exportBatch';
+        const chunkSize = exp.format === 'PDF' ? 20 : 50;
+
+        for (let i = 0; i < csv.rows.length; i += chunkSize) {
+            const chunk = csv.rows.slice(i, i + chunkSize);
+            const chunkEnd = Math.min(i + chunk.length, csv.rows.length);
+            setProg({ c: i, t: csv.rows.length });
 
             try {
                 const result = await bridge.executeScript({
                     scriptId: 'data-merge',
                     scriptPath: './src/scripts/batch/data-merge.jsx',
                     args: {
-                        mode: 'exportSingle',
+                        mode: exportMode,
                         mappings: activeMappings,
-                        rowData: csv.rows[i],
+                        csvData: chunk,
                         headers: csv.headers,
-                        rowIndex: i,
+                        startIndex: i,
                         exportSettings: exp,
                         csvDir,
                         textStyleRules: textRuleState.rules,
                     },
                 });
 
-                if (result.success) successCount++;
-                else failCount++;
+                if (result.success) {
+                    const data = result.data as any;
+                    successCount += Number(data?.exported || 0);
+                    failCount += Number(data?.failed || 0);
+                } else {
+                    failCount += chunk.length;
+                }
             } catch {
-                failCount++;
+                failCount += chunk.length;
             }
+
+            setProg({ c: chunkEnd, t: csv.rows.length });
         }
 
         setBusy(false);
         setProg({ c: csv.rows.length, t: csv.rows.length });
-        setMsg(failCount ? { t: 'err', s: `${successCount} 成功，${failCount} 失败` } : { t: 'ok', s: `导出完成，共 ${successCount} 个文件` });
+        setMsg(failCount ? { t: 'err', s: `${successCount} 成功，${failCount} 失败，用时 ${formatElapsed(startedAt)} 秒` } : { t: 'ok', s: `导出完成，共 ${successCount} 个文件，用时 ${formatElapsed(startedAt)} 秒` });
     }, [buildTextRulePayload, csv, csvDir, exp, maps]);
 
     const updateRule = (ruleId: string, patch: Partial<TextStyleRule>) => {
@@ -672,7 +775,7 @@ export const DataMerge: React.FC = () => {
                     {csv && <Badge variant="accent">{csv.rows.length} 行</Badge>}
                 </div>
             ) : (
-                <div className="card" style={{ padding: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+                <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <Seg items={[{ key: 'seq', label: '序号生成' }, { key: 'img', label: '图片文件夹' }]} value={genMode} onChange={(value) => setGenMode(value as 'seq' | 'img')} />
 
                     {genMode === 'seq' ? (
@@ -693,41 +796,51 @@ export const DataMerge: React.FC = () => {
                         </>
                     ) : (
                         <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                                <button className="btn btn-sm" onClick={pickImgDir}>选择文件夹</button>
-                                <span className="text-sm" style={{ flex: 1, color: imgDir ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {imgDir ? path.basename(imgDir) : '未选择'}
-                                </span>
-                                {imgFiles.length > 0 && <Badge variant="accent">{imgFiles.length} 文件</Badge>}
-                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) auto', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>文件夹</span>
+                                    <span className="text-sm" title={imgDir || ''} style={{ minWidth: 0, color: imgDir ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {imgDir ? path.basename(imgDir) : '未选择'}
+                                    </span>
+                                    <button className="btn btn-sm" onClick={pickImgDir} style={{ padding: '3px 10px', height: '28px' }}>选择</button>
+                                </div>
 
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                                {['jpg', 'png', 'tif', 'psd', 'ai', 'svg'].map((ext) => {
-                                    const enabled = imgExts.includes(ext);
-                                    return (
-                                        <button
-                                            key={ext}
-                                            onClick={() => {
-                                                const alias = ext === 'jpg' ? ['jpeg'] : ext === 'tif' ? ['tiff'] : [];
-                                                const next = enabled ? imgExts.filter((item) => item !== ext && !alias.includes(item)) : [...imgExts, ext, ...alias];
-                                                setImgExts(next);
-                                                if (imgDir) setImgFiles(scanImgFolder(imgDir, next));
-                                            }}
-                                            style={{
-                                                padding: '1px 6px',
-                                                fontSize: '10px',
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                border: 'none',
-                                                background: enabled ? 'var(--color-accent)' : 'var(--color-bg-tertiary)',
-                                                color: enabled ? '#fff' : 'var(--color-text-tertiary)',
-                                                transition: 'var(--transition-fast)',
-                                            }}
-                                        >
-                                            .{ext}
-                                        </button>
-                                    );
-                                })}
+                                <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) auto', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>格式</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', minWidth: 0 }}>
+                                        {['jpg', 'png', 'tif', 'psd', 'ai', 'svg'].map((ext) => {
+                                            const enabled = imgExts.includes(ext);
+                                            return (
+                                                <button
+                                                    key={ext}
+                                                    onClick={() => {
+                                                        const alias = ext === 'jpg' ? ['jpeg'] : ext === 'tif' ? ['tiff'] : [];
+                                                        const next = enabled ? imgExts.filter((item) => item !== ext && !alias.includes(item)) : [...imgExts, ext, ...alias];
+                                                        setImgExts(next);
+                                                        if (imgDir) setImgFiles(scanImgFolder(imgDir, next));
+                                                    }}
+                                                    style={{
+                                                        minWidth: '40px',
+                                                        height: '22px',
+                                                        padding: '0 8px',
+                                                        fontSize: '10px',
+                                                        borderRadius: '11px',
+                                                        cursor: 'pointer',
+                                                        border: `1px solid ${enabled ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                                                        background: enabled ? 'var(--color-accent)' : 'transparent',
+                                                        color: enabled ? '#fff' : 'var(--color-text-secondary)',
+                                                        transition: 'var(--transition-fast)',
+                                                    }}
+                                                >
+                                                    .{ext}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <span style={{ fontSize: '10px', color: imgFiles.length ? 'var(--color-accent)' : 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
+                                        {imgFiles.length ? `${imgFiles.length} 文件` : '0 文件'}
+                                    </span>
+                                </div>
                             </div>
 
                             {imgFiles.length > 0 && (
@@ -737,9 +850,9 @@ export const DataMerge: React.FC = () => {
                                 </div>
                             )}
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                                <span>添加序号列</span>
                                 <input type="checkbox" checked={imgSeq} onChange={(e) => setImgSeq(e.target.checked)} />
-                                添加序号列
                             </label>
 
                             {imgSeq && (
@@ -902,17 +1015,43 @@ export const DataMerge: React.FC = () => {
                     )}
 
                     {exMode === 'exp' && (
-                        <div className="card" style={{ padding: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-                            <Field label="格式"><Seg items={[{ key: 'PDF', label: 'PDF' }, { key: 'PNG', label: 'PNG' }, { key: 'JPG', label: 'JPG' }]} value={exp.format} onChange={(value) => setExp((prev) => ({ ...prev, format: value as ExportSettings['format'] }))} /></Field>
-                            {exp.format !== 'PDF' && <Field label="DPI"><input className="input" type="number" value={exp.dpi} onChange={(e) => setExp((prev) => ({ ...prev, dpi: Number(e.target.value) || 300 }))} style={{ width: '70px', height: '28px', textAlign: 'center' }} /></Field>}
-                            <Field label="文件夹">
-                                <button className="btn btn-sm" onClick={pickFolder} style={{ padding: '2px 10px' }}>选择</button>
-                                <span className="text-sm" style={{ flex: 1, color: exp.outputFolder ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div
+                            className="card"
+                            style={{
+                                padding: '12px',
+                                display: 'grid',
+                                gridTemplateColumns: '54px minmax(0, 1fr)',
+                                gap: '10px 10px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>格式</span>
+                            <Seg items={[{ key: 'PDF', label: 'PDF' }, { key: 'PNG', label: 'PNG' }, { key: 'JPG', label: 'JPG' }]} value={exp.format} onChange={(value) => setExp((prev) => ({ ...prev, format: value as ExportSettings['format'] }))} />
+
+                            {exp.format === 'PDF' && (
+                                <>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>PDF</span>
+                                    <Seg items={[{ key: 'python', label: '高速' }, { key: 'separate', label: '单独' }]} value={exp.pdfMode} onChange={(value) => setExp((prev) => ({ ...prev, pdfMode: value as ExportSettings['pdfMode'] }))} />
+                                </>
+                            )}
+
+                            {exp.format !== 'PDF' && (
+                                <>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>DPI</span>
+                                    <input className="input" type="number" value={exp.dpi} onChange={(e) => setExp((prev) => ({ ...prev, dpi: Number(e.target.value) || 300 }))} style={{ width: '88px', height: '30px', textAlign: 'center' }} />
+                                </>
+                            )}
+
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>文件夹</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                <button className="btn btn-sm" onClick={pickFolder} style={{ padding: '3px 12px', flexShrink: 0 }}>选择</button>
+                                <span className="text-sm" title={exp.outputFolder || ''} style={{ flex: 1, minWidth: 0, color: exp.outputFolder ? 'var(--color-text-primary)' : 'var(--color-text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {exp.outputFolder ? path.basename(exp.outputFolder) : '未选择'}
                                 </span>
-                            </Field>
-                            <Field label="文件名"><input className="input" value={exp.fileNamePattern} onChange={(e) => setExp((prev) => ({ ...prev, fileNamePattern: e.target.value }))} placeholder="{#}" style={{ flex: 1, height: '28px' }} /></Field>
-                            <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', paddingLeft: '44px' }}>{'{#}'} 表示行号，{'{列名}'} 表示对应单元格内容</div>
+                            </div>
+
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>文件名</span>
+                            <input className="input" value={exp.fileNamePattern} onChange={(e) => setExp((prev) => ({ ...prev, fileNamePattern: e.target.value }))} placeholder="{#}" style={{ height: '30px', minWidth: 0 }} />
                         </div>
                     )}
 
@@ -931,7 +1070,7 @@ export const DataMerge: React.FC = () => {
                 </>
             )}
 
-            {msg.s && <div className={msg.t === 'err' ? 'alert alert-error' : msg.t === 'ok' ? 'alert alert-success' : 'alert alert-info'} style={{ padding: '8px 12px', marginBottom: 0, fontSize: 'var(--font-size-xs)' }}>{msg.s}</div>}
+            {msg.s && (msg.t === 'err' || msg.t === 'ok') && <div className={msg.t === 'err' ? 'alert alert-error' : 'alert alert-success'} style={{ padding: '8px 12px', marginBottom: 0, fontSize: 'var(--font-size-xs)' }}>{msg.s}</div>}
         </div>
     );
 };

@@ -115,7 +115,7 @@ export async function checkDependencies(pythonCmd: string): Promise<boolean> {
 export async function checkDependencyDetails(pythonCmd: string): Promise<DependencyStatus> {
     // 注意: exec 外层用双引号包裹 -c 参数，Python 代码内部必须用单引号
     // 补丁 + 核心检查 (放大功能)
-    const coreScript = "import fastapi, uvicorn, PIL, numpy, cv2; print('OK')";
+    const coreScript = "import fastapi, uvicorn, PIL, numpy, cv2, reportlab, pypdf, fontTools; print('OK')";
     // 抠图功能检查 (注入 numba shim 以绕过 llvmlite 缺失)
     const rembgScript = "import rembg; print('OK')";
     const realesrganScript = "import sys; import torchvision.transforms.functional as _F; sys.modules['torchvision.transforms.functional_tensor']=_F; import torch; import basicsr; from realesrgan import RealESRGANer; print('OK')";
@@ -456,6 +456,27 @@ export async function denoiseImage(
         return await response.json();
     } catch (error: any) {
         if (error.name === 'AbortError') return { success: false, error: '处理超时，请重试' };
+        return { success: false, error: error.message };
+    }
+}
+
+export async function renderDataMergePdf(
+    template: any,
+    headers: string[],
+    rows: string[][],
+    output: string,
+    csvDir: string = ''
+): Promise<{ success: boolean; output?: string; pages?: number; error?: string }> {
+    try {
+        const response = await fetchWithTimeout(`${ENGINE_URL}/data_merge_pdf`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${readStoredToken()}` },
+            body: JSON.stringify({ template, headers, rows, output, csv_dir: csvDir })
+        }, 300000);
+
+        return await response.json();
+    } catch (error: any) {
+        if (error.name === 'AbortError') return { success: false, error: 'PDF 生成超时，请减少单次数据量或重试' };
         return { success: false, error: error.message };
     }
 }
