@@ -1,0 +1,2692 @@
+{
+  "generated": "2026-04-30",
+  "sources": [
+    "Notion page supplied by project",
+    "https://divib.cc/docs/Adobe-illustrator/%E8%8F%9C%E5%8D%95%E5%91%BD%E4%BB%A4"
+  ],
+  "count": 447,
+  "commands": [
+    {
+      "category": "File 文件",
+      "command": "new",
+      "menu_en": "New",
+      "menu_zh": "新建"
+    },
+    {
+      "category": "File 文件",
+      "command": "newFromTemplate",
+      "menu_en": "New from Template",
+      "menu_zh": "从模板新建"
+    },
+    {
+      "category": "File 文件",
+      "command": "open",
+      "menu_en": "Open",
+      "menu_zh": "打开"
+    },
+    {
+      "category": "File 文件",
+      "command": "Adobe Bridge Browse",
+      "menu_en": "Browse in Bridge",
+      "menu_zh": "在Bridge中浏览"
+    },
+    {
+      "category": "File 文件",
+      "command": "close",
+      "menu_en": "Close",
+      "menu_zh": "关闭"
+    },
+    {
+      "category": "File 文件",
+      "command": "save",
+      "menu_en": "Save",
+      "menu_zh": "保存"
+    },
+    {
+      "category": "File 文件",
+      "command": "saveas",
+      "menu_en": "Save As",
+      "menu_zh": "另存为"
+    },
+    {
+      "category": "File 文件",
+      "command": "saveacopy",
+      "menu_en": "Save a Copy",
+      "menu_zh": "保存副本"
+    },
+    {
+      "category": "File 文件",
+      "command": "saveastemplate",
+      "menu_en": "Save as Template",
+      "menu_zh": "另存为模板"
+    },
+    {
+      "category": "File 文件",
+      "command": "Adobe AI Save For Web",
+      "menu_en": "Save for Web & Devices",
+      "menu_zh": "保存为Web和设备"
+    },
+    {
+      "category": "File 文件",
+      "command": "Adobe AI Save Selected Slices",
+      "menu_en": "Save Selected Slices",
+      "menu_zh": "保存选定的切片"
+    },
+    {
+      "category": "File 文件",
+      "command": "revert",
+      "menu_en": "Revert",
+      "menu_zh": "还原"
+    },
+    {
+      "category": "File 文件",
+      "command": "AI Place",
+      "menu_en": "Place",
+      "menu_zh": "导入"
+    },
+    {
+      "category": "File 文件",
+      "command": "export",
+      "menu_en": "Export",
+      "menu_zh": "导出"
+    },
+    {
+      "category": "File 文件",
+      "command": "exportSelection",
+      "menu_en": "Export Selection",
+      "menu_zh": "导出选择"
+    },
+    {
+      "category": "File 文件",
+      "command": "exportForScreens",
+      "menu_en": "Export/Export For Screens",
+      "menu_zh": "导出/导出屏幕"
+    },
+    {
+      "category": "File 文件",
+      "command": "ai_browse_for_script",
+      "menu_en": "Scripts>Other Script",
+      "menu_zh": "脚本>其他脚本"
+    },
+    {
+      "category": "File 文件",
+      "command": "document",
+      "menu_en": "Document Setup",
+      "menu_zh": "文档设置"
+    },
+    {
+      "category": "File 文件",
+      "command": "doc-color-cmyk",
+      "menu_en": "Document Color Mode>CMYK Color",
+      "menu_zh": "文档颜色模式>CMYK颜色"
+    },
+    {
+      "category": "File 文件",
+      "command": "doc-color-rgb",
+      "menu_en": "Document Color Mode>RGB Color",
+      "menu_zh": "文档颜色模式>RGB颜色"
+    },
+    {
+      "category": "File 文件",
+      "command": "File Info",
+      "menu_en": "File Info",
+      "menu_zh": "文件信息"
+    },
+    {
+      "category": "File 文件",
+      "command": "Print",
+      "menu_en": "Print",
+      "menu_zh": "打印"
+    },
+    {
+      "category": "File 文件",
+      "command": "quit",
+      "menu_en": "Exit",
+      "menu_zh": "退出"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "undo",
+      "menu_en": "Undo",
+      "menu_zh": "撤消"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "redo",
+      "menu_en": "Redo",
+      "menu_zh": "重做"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "cut",
+      "menu_en": "Cut",
+      "menu_zh": "剪切"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "copy",
+      "menu_en": "Copy",
+      "menu_zh": "复制"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "paste",
+      "menu_en": "Paste",
+      "menu_zh": "粘贴"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "pasteFront",
+      "menu_en": "Paste in Front",
+      "menu_zh": "粘贴在前面"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "pasteBack",
+      "menu_en": "Paste in Back",
+      "menu_zh": "粘贴到后面"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "pasteInPlace",
+      "menu_en": "Paste in Place",
+      "menu_zh": "粘贴到原位"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "pasteInAllArtboard",
+      "menu_en": "Paste on All Artboards",
+      "menu_zh": "粘贴到所有画板上"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "clear",
+      "menu_en": "Clear",
+      "menu_zh": "清除"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Find and Replace",
+      "menu_en": "Find & Replace",
+      "menu_zh": "查找和替换"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Find Next",
+      "menu_en": "Find Next",
+      "menu_zh": "查找下一个"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Check Spelling",
+      "menu_en": "Check Spelling",
+      "menu_zh": "检查拼写"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Define Pattern Menu Item",
+      "menu_en": "Define Pattern",
+      "menu_zh": "定义图案"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Recolor Art Dialog",
+      "menu_en": "Edit Colors>Recolor Artwork",
+      "menu_zh": "编辑颜色>重新着色图稿"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Adjust3",
+      "menu_en": "Edit Colors>Adjust Color Balance",
+      "menu_zh": "编辑颜色>调整色彩平衡"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors3",
+      "menu_en": "Edit Colors>Blend Front to Back",
+      "menu_zh": "编辑颜色>从前到后混合"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors4",
+      "menu_en": "Edit Colors>Blend Horizontally",
+      "menu_zh": "编辑颜色>水平混合"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors5",
+      "menu_en": "Edit Colors>Blend Vertically",
+      "menu_zh": "编辑颜色>垂直混合"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors8",
+      "menu_en": "Edit Colors>Convert to CMYK",
+      "menu_zh": "编辑颜色>转换为CMYK"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors7",
+      "menu_en": "Edit Colors>Convert to Grayscale",
+      "menu_zh": "编辑颜色>转换为灰度"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors9",
+      "menu_en": "Edit Colors>Convert to RGB",
+      "menu_zh": "编辑颜色>转换为RGB"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Colors6",
+      "menu_en": "Edit Colors>Invert Colors",
+      "menu_zh": "编辑颜色>反转颜色"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Overprint2",
+      "menu_en": "Edit Colors>Overprint Black",
+      "menu_zh": "编辑颜色>叠印黑色"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Saturate3",
+      "menu_en": "Edit Colors>Saturate",
+      "menu_zh": "编辑颜色>饱和"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "EditOriginal Menu Item",
+      "menu_en": "Edit Original",
+      "menu_zh": "编辑原始"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Transparency Presets",
+      "menu_en": "Transparency Flattener Presets",
+      "menu_zh": "透明度拼合器预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "TracingPresets",
+      "menu_en": "Tracing Presets",
+      "menu_zh": "描摹预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "Print Presets",
+      "menu_en": "Print Presets",
+      "menu_zh": "打印预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "PDF Presets",
+      "menu_en": "Adobe PDF Presets",
+      "menu_zh": "AdobePDF预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "SWFPresets",
+      "menu_en": "SWF Presets",
+      "menu_zh": "SWF预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "PerspectiveGridPresets",
+      "menu_en": "Perspective Grid Presets",
+      "menu_zh": "透视网格预设"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "color",
+      "menu_en": "Color Settings",
+      "menu_zh": "颜色设置"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "assignprofile",
+      "menu_en": "Assign Profile",
+      "menu_zh": "分配配置文件"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "KBSC Menu Item",
+      "menu_en": "Keyboard Shortcuts",
+      "menu_zh": "键盘快捷键"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "preference",
+      "menu_en": "Preferences>General",
+      "menu_zh": "首选项>常规"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "selectPref",
+      "menu_en": "Preferences>Selection & Anchor Display",
+      "menu_zh": "首选项>选择和锚点显示"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "keyboardPref",
+      "menu_en": "Preferences>Type",
+      "menu_zh": "首选项>类型"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "unitundoPref",
+      "menu_en": "Preferences>Units",
+      "menu_zh": "首选项>单位"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "guidegridPref",
+      "menu_en": "Preferences>Guides & Grid",
+      "menu_zh": "首选项>指南&网格"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "snapPref",
+      "menu_en": "Preferences>Smart Guides",
+      "menu_zh": "首选项>智能指南"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "slicePref",
+      "menu_en": "Preferences>Slices",
+      "menu_zh": "首选项>切片"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "hyphenPref",
+      "menu_en": "Preferences>Hyphenation",
+      "menu_zh": "首选项>连字"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "pluginPref",
+      "menu_en": "Preferences>Plug-ins & Scratch Disks",
+      "menu_zh": "首选项>插件和暂存盘"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "UIPref",
+      "menu_en": "Preferences>User Interface",
+      "menu_zh": "首选项>用户界面"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "FileClipboardPref",
+      "menu_en": "Preferences>File Handling & Clipboard",
+      "menu_zh": "首选项>文件处理和剪贴板"
+    },
+    {
+      "category": "Edi 编辑",
+      "command": "BlackPref",
+      "menu_en": "Preferences>Appearance of Black",
+      "menu_zh": "偏好>黑色的外观"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformagain",
+      "menu_en": "Transform>Transform Again",
+      "menu_zh": "变换>再次变换"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformmove",
+      "menu_en": "Transform>Move",
+      "menu_zh": "变换>移动"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformrotate",
+      "menu_en": "Transform>Rotate",
+      "menu_zh": "变换>旋转"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformreflect",
+      "menu_en": "Transform>Reflect",
+      "menu_zh": "转换>反射"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformscale",
+      "menu_en": "Transform>Scale",
+      "menu_zh": "转换>缩放"
+    },
+    {
+      "category": "Object 对象",
+      "command": "transformshear",
+      "menu_en": "Transform>Shear",
+      "menu_zh": "变换>剪切"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Transform v23",
+      "menu_en": "Transform Each",
+      "menu_zh": "分别变换"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AI Reset Bounding Box",
+      "menu_en": "Transform>Reset Bounding Box",
+      "menu_zh": "变换>重置边界框"
+    },
+    {
+      "category": "Object 对象",
+      "command": "sendToFront",
+      "menu_en": "Arrange>Bring to Front",
+      "menu_zh": "排列>置于前面"
+    },
+    {
+      "category": "Object 对象",
+      "command": "sendForward",
+      "menu_en": "Arrange>Bring Forward",
+      "menu_zh": "排列>向前"
+    },
+    {
+      "category": "Object 对象",
+      "command": "sendBackward",
+      "menu_en": "Arrange>Send Backward",
+      "menu_zh": "排列>向后发送"
+    },
+    {
+      "category": "Object 对象",
+      "command": "sendToBack",
+      "menu_en": "Arrange>Send to Back",
+      "menu_zh": "排列>发送到后面"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Selection Hat 2",
+      "menu_en": "Arrange>Send to Current Layer",
+      "menu_zh": "排列>发送到当前图层"
+    },
+    {
+      "category": "Object 对象",
+      "command": "group",
+      "menu_en": "Group",
+      "menu_zh": "组"
+    },
+    {
+      "category": "Object 对象",
+      "command": "ungroup",
+      "menu_en": "Ungroup",
+      "menu_zh": "取消分组"
+    },
+    {
+      "category": "Object 对象",
+      "command": "lock",
+      "menu_en": "Lock>Selection",
+      "menu_zh": "锁定>选择"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Selection Hat 5",
+      "menu_en": "Lock>All Artwork Above",
+      "menu_zh": "锁定>上面的所有图稿"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Selection Hat 7",
+      "menu_en": "Lock>Other Layers",
+      "menu_zh": "锁定>其他图层"
+    },
+    {
+      "category": "Object 对象",
+      "command": "unlockAll",
+      "menu_en": "Unlock All",
+      "menu_zh": "全部解锁"
+    },
+    {
+      "category": "Object 对象",
+      "command": "hide",
+      "menu_en": "Hide>Selection",
+      "menu_zh": "隐藏>选择"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Selection Hat 4",
+      "menu_en": "Hide>All Artwork Above",
+      "menu_zh": "隐藏>上面的所有图稿"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Selection Hat 6",
+      "menu_en": "Hide>Other Layers",
+      "menu_zh": "隐藏>其他图层"
+    },
+    {
+      "category": "Object 对象",
+      "command": "showAll",
+      "menu_en": "Show All",
+      "menu_zh": "显示全部"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Expand3",
+      "menu_en": "Expand",
+      "menu_zh": "扩展"
+    },
+    {
+      "category": "Object 对象",
+      "command": "expandStyle",
+      "menu_en": "Expand Appearance",
+      "menu_zh": "扩展外观"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Flatten Transparency",
+      "menu_en": "Flatten Transparency",
+      "menu_zh": "合并透明度"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Rasterize 8 menu item",
+      "menu_en": "Rasterize",
+      "menu_zh": "栅格化"
+    },
+    {
+      "category": "Object 对象",
+      "command": "make mesh",
+      "menu_en": "Create Gradient Mesh",
+      "menu_zh": "创建渐变网格"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AI Object Mosaic Plug-in4",
+      "menu_en": "Create Object Mosaic",
+      "menu_zh": "创建对象镶嵌"
+    },
+    {
+      "category": "Object 对象",
+      "command": "TrimMark v25",
+      "menu_en": "Create Trim Marks",
+      "menu_zh": "创建修剪标记"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Make Slice",
+      "menu_en": "Slice>Make",
+      "menu_zh": "切片>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Release Slice",
+      "menu_en": "Slice>Release",
+      "menu_zh": "切片>发布"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Create from Guides",
+      "menu_en": "Slice>Create from Guides",
+      "menu_zh": "切片>从参考线创建"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Create from Selection",
+      "menu_en": "Slice>Create from Selection",
+      "menu_zh": "切片>从选择创建"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Duplicate",
+      "menu_en": "Slice>Duplicate Slice",
+      "menu_zh": "切片>重复切片"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Combine",
+      "menu_en": "Slice>Combine Slices",
+      "menu_zh": "切片>组合切片"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Divide",
+      "menu_en": "Slice>Divide Slices",
+      "menu_zh": "切片>分割切片"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Delete All Slices",
+      "menu_en": "Slice>Delete All",
+      "menu_zh": "切片>全部删除"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Slice Options",
+      "menu_en": "Slice>Slice Options",
+      "menu_zh": "切片>切片选项"
+    },
+    {
+      "category": "Object 对象",
+      "command": "AISlice Clip to Artboard",
+      "menu_en": "Slice>Clip to Artboard",
+      "menu_zh": "切片>剪辑到画板"
+    },
+    {
+      "category": "Object 对象",
+      "command": "join",
+      "menu_en": "Path>Join",
+      "menu_zh": "路径>连接"
+    },
+    {
+      "category": "Object 对象",
+      "command": "average",
+      "menu_en": "Path>Average",
+      "menu_zh": "路径>平均"
+    },
+    {
+      "category": "Object 对象",
+      "command": "OffsetPath v22",
+      "menu_en": "Path>Outline Stroke",
+      "menu_zh": "路径>轮廓化描边"
+    },
+    {
+      "category": "Object 对象",
+      "command": "OffsetPath v23",
+      "menu_en": "Path>Offset Path",
+      "menu_zh": "路径>偏移路径"
+    },
+    {
+      "category": "Object 对象",
+      "command": "simplify menu item",
+      "menu_en": "Path>Simplify",
+      "menu_zh": "路径>简化"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Add Anchor Points2",
+      "menu_en": "Path>Add Anchor Points",
+      "menu_zh": "路径>添加锚点"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Remove Anchor Points menu",
+      "menu_en": "Path>Remove Anchor Points",
+      "menu_zh": "路径>删除锚点"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Knife Tool2",
+      "menu_en": "Path>Divide Objects Below",
+      "menu_zh": "路径>划分下面的对象"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Rows and Columns….",
+      "menu_en": "Path>Split Into Grid",
+      "menu_zh": "路径>拆分为网格"
+    },
+    {
+      "category": "Object 对象",
+      "command": "cleanup menu item",
+      "menu_en": "Path>Clean Up",
+      "menu_zh": "路径>清理"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Make",
+      "menu_en": "Blend>Make",
+      "menu_zh": "混合>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Release",
+      "menu_en": "Blend>Release",
+      "menu_zh": "混合>发布"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Expand",
+      "menu_en": "Blend>Expand",
+      "menu_zh": "混合>展开"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Options",
+      "menu_en": "Blend>Blend Options",
+      "menu_zh": "混合>混合选项"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Replace Spine",
+      "menu_en": "Blend>Replace Spine",
+      "menu_zh": "混合>替换书脊"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Reverse Spine",
+      "menu_en": "Blend>Reverse Spine",
+      "menu_zh": "混合>反向书脊"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Path Blend Reverse Stack",
+      "menu_en": "Blend>Reverse Front to Back",
+      "menu_zh": "混合>从前到后反向"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Make Warp",
+      "menu_en": "Envelope Distort>Make with Warp",
+      "menu_zh": "信封扭曲>用变形制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Create Envelope Grid",
+      "menu_en": "Envelope Distort>Make with Mesh",
+      "menu_zh": "信封扭曲>用网格制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Make Envelope",
+      "menu_en": "Envelope Distort>Make with Top Object",
+      "menu_zh": "信封扭曲>用顶部对象制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Release Envelope",
+      "menu_en": "Envelope Distort>Release",
+      "menu_zh": "信封扭曲>释放"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Envelope Options",
+      "menu_en": "Envelope Distort>Envelope Options",
+      "menu_zh": "信封扭曲>信封选项"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Expand Envelope",
+      "menu_en": "Envelope Distort>Expand",
+      "menu_zh": "信封扭曲>展开"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Edit Envelope Contents",
+      "menu_en": "Envelope Distort>Edit Contents",
+      "menu_zh": "信封扭曲>编辑内容"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Attach to Active Plane",
+      "menu_en": "Perspective>Attach to Active Plane",
+      "menu_zh": "透视>附加到活动平面"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Release with Perspective",
+      "menu_en": "Perspective>Release with Perspective",
+      "menu_zh": "透视>使用透视释放"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Show Object Grid Plane",
+      "menu_en": "Perspective>Move Plane to Match Object",
+      "menu_zh": "透视>移动平面以匹配对象"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Edit Original Object",
+      "menu_en": "Perspective>Edit Text",
+      "menu_zh": "透视>编辑文本"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Make Planet X",
+      "menu_en": "Live Paint>Make",
+      "menu_zh": "实时上色>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Marge Planet X",
+      "menu_en": "Live Paint>Merge",
+      "menu_zh": "实时上色>合并"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Release Planet X",
+      "menu_en": "Live Paint>Release",
+      "menu_zh": "实时上色>发布"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Planet X Options",
+      "menu_en": "Live Paint>Gap Options",
+      "menu_zh": "实时上色>间隙选项"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Expand Planet X",
+      "menu_en": "Live Paint>Expand",
+      "menu_zh": "实时上色>展开"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Make Text Wrap",
+      "menu_en": "Text Wrap>Make",
+      "menu_zh": "文本绕排>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Release Text Wrap",
+      "menu_en": "Text Wrap>Release",
+      "menu_zh": "文本绕排>释放"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Text Wrap Options…",
+      "menu_en": "Text Wrap>Text Wrap Options",
+      "menu_zh": "文本绕排>文本绕排选项"
+    },
+    {
+      "category": "Object 对象",
+      "command": "makeMask",
+      "menu_en": "Clipping Mask>Make",
+      "menu_zh": "剪切蒙版>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "releaseMask",
+      "menu_en": "Clipping Mask>Release",
+      "menu_zh": "剪切蒙版>释放"
+    },
+    {
+      "category": "Object 对象",
+      "command": "editMask",
+      "menu_en": "Clipping Mask>Edit Contents",
+      "menu_zh": "剪切蒙版>编辑内容"
+    },
+    {
+      "category": "Object 对象",
+      "command": "compoundPath",
+      "menu_en": "Compound Path>Make",
+      "menu_zh": "复合路径>制作"
+    },
+    {
+      "category": "Object 对象",
+      "command": "noCompoundPath",
+      "menu_en": "Compound Path>Release",
+      "menu_zh": "复合路径>释放e"
+    },
+    {
+      "category": "Object 对象",
+      "command": "setCropMarks",
+      "menu_en": "Artboards>Convert to Artboards",
+      "menu_zh": "画板>转换为画板"
+    },
+    {
+      "category": "Object 对象",
+      "command": "ReArrange Artboards",
+      "menu_en": "Artboards>Rearrange",
+      "menu_zh": "画板>重新排列"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Fit Artboard to artwork bounds",
+      "menu_en": "Artboards>Fit to Artwork Bounds",
+      "menu_zh": "画板>适合图稿边界"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Fit Artboard to selected Art",
+      "menu_en": "Artboards>Fit to Selected Art",
+      "menu_zh": "画板>适合所选图稿"
+    },
+    {
+      "category": "Object 对象",
+      "command": "setGraphStyle",
+      "menu_en": "Graph>Type",
+      "menu_zh": "图>类型"
+    },
+    {
+      "category": "Object 对象",
+      "command": "editGraphData",
+      "menu_en": "Graph>Data",
+      "menu_zh": "图>数据"
+    },
+    {
+      "category": "Object 对象",
+      "command": "graphDesigns",
+      "menu_en": "Graph>Design",
+      "menu_zh": "图>设计"
+    },
+    {
+      "category": "Object 对象",
+      "command": "setBarDesign",
+      "menu_en": "Graph>Column",
+      "menu_zh": "图>列"
+    },
+    {
+      "category": "Object 对象",
+      "command": "setIconDesign",
+      "menu_en": "Graph>Marker",
+      "menu_zh": "图>标记"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Horizontal Align Left",
+      "menu_en": "Align>Horizontal Align Left",
+      "menu_zh": "对齐>水平左对齐"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Horizontal Align Center",
+      "menu_en": "Align>Horizontal Align Center",
+      "menu_zh": "对齐>水平居中对齐"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Horizontal Align Right",
+      "menu_en": "Align>Horizontal Align Right",
+      "menu_zh": "对齐>水平右对齐"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Vertical Align Top",
+      "menu_en": "Align>Vertical Align Top",
+      "menu_zh": "对齐>垂直向上对齐"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Vertical Align Center",
+      "menu_en": "Align>Vertical Align Center",
+      "menu_zh": "对齐>垂直对齐中心"
+    },
+    {
+      "category": "Object 对象",
+      "command": "Vertical Align Bottom",
+      "menu_en": "Align>Vertical Align Bottom",
+      "menu_zh": "对齐>垂直底部对齐"
+    },
+    {
+      "category": "Type 文字",
+      "command": "alternate glyph palette plugin",
+      "menu_en": "Glyphs",
+      "menu_zh": "字形"
+    },
+    {
+      "category": "Type 文字",
+      "command": "area-type-options",
+      "menu_en": "Area Type Options",
+      "menu_zh": "区域类型选项"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Rainbow",
+      "menu_en": "Type on a Path>Rainbow",
+      "menu_zh": "路径文字>彩虹"
+    },
+    {
+      "category": "Type 文字",
+      "command": "3D ribbon",
+      "menu_en": "Type on a Path>3D Ribbon",
+      "menu_zh": "路径文字>3D带状效果"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Skew",
+      "menu_en": "Type on a Path>Skew",
+      "menu_zh": "路径文字>倾斜"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Stair Step",
+      "menu_en": "Type on a Path>Stair Step",
+      "menu_zh": "路径文字>楼梯台阶"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Gravity",
+      "menu_en": "Type on a Path>Gravity",
+      "menu_zh": "路径文字>重力"
+    },
+    {
+      "category": "Type 文字",
+      "command": "typeOnPathOptions",
+      "menu_en": "Type on a Path>Type on a path Options",
+      "menu_zh": "路径文字>在路径上键入选项"
+    },
+    {
+      "category": "Type 文字",
+      "command": "updateLegacyTOP",
+      "menu_en": "Type on a Path>Update Legacy Type on a Path",
+      "menu_zh": "路径文字>更新路径上的旧类型"
+    },
+    {
+      "category": "Type 文字",
+      "command": "threadTextCreate",
+      "menu_en": "Threaded Text>Create",
+      "menu_zh": "串接文本>创建"
+    },
+    {
+      "category": "Type 文字",
+      "command": "releaseThreadedTextSelection",
+      "menu_en": "Threaded Text>Release Selection",
+      "menu_zh": "串接文本>发布选择"
+    },
+    {
+      "category": "Type 文字",
+      "command": "removeThreading",
+      "menu_en": "Threaded Text>Remove Threading",
+      "menu_zh": "串接文本>删除串接"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe internal composite font plugin",
+      "menu_en": "Composite Fonts",
+      "menu_zh": "复合字体"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe Kinsoku Settings",
+      "menu_en": "Kinsoku Shori Settings",
+      "menu_zh": "隐尾书店设置"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe MojiKumi Settings",
+      "menu_en": "Mojikumi Settings",
+      "menu_zh": "标点挤压设置"
+    },
+    {
+      "category": "Type 文字",
+      "command": "fitHeadline",
+      "menu_en": "Fit Headline",
+      "menu_zh": "适合标题"
+    },
+    {
+      "category": "Type 文字",
+      "command": "outline",
+      "menu_en": "Create Outlines",
+      "menu_zh": "创建大纲"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe Illustrator Find Font Menu Item",
+      "menu_en": "Find Font",
+      "menu_zh": "查找字体"
+    },
+    {
+      "category": "Type 文字",
+      "command": "UpperCase Change Case Item",
+      "menu_en": "Change Case>UPPERCASE",
+      "menu_zh": "更改大小写>大写"
+    },
+    {
+      "category": "Type 文字",
+      "command": "LowerCase Change Case Item",
+      "menu_en": "Change Case>lowercase",
+      "menu_zh": "更改大小写>小写"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Title Case Change Case Item",
+      "menu_en": "Change Case>Title Case",
+      "menu_zh": "更改大小写>标题大小写"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Sentence case Change Case Item",
+      "menu_en": "Change Case>Sentence case",
+      "menu_zh": "更改大小写>句子大小写"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe Illustrator Smart Punctuation Menu Item",
+      "menu_en": "Smart Punctuation",
+      "menu_zh": "智能标点符号"
+    },
+    {
+      "category": "Type 文字",
+      "command": "Adobe Optical Alignment Item",
+      "menu_en": "Optical Margin Alignment",
+      "menu_zh": "视觉边距对齐方式"
+    },
+    {
+      "category": "Type 文字",
+      "command": "showHiddenChar",
+      "menu_en": "Show Hidden Characters",
+      "menu_zh": "显示隐藏字符"
+    },
+    {
+      "category": "Type 文字",
+      "command": "type-horizontal",
+      "menu_en": "Type Orientation>Horizontal",
+      "menu_zh": "文字方向>水平"
+    },
+    {
+      "category": "Type 文字",
+      "command": "type-vertical",
+      "menu_en": "Type Orientation>Vertical",
+      "menu_zh": "文字方向>垂直"
+    },
+    {
+      "category": "Select 选择",
+      "command": "selectall",
+      "menu_en": "All",
+      "menu_zh": "选择全部"
+    },
+    {
+      "category": "Select 选择",
+      "command": "selectallinartboard",
+      "menu_en": "All on Active Artboard",
+      "menu_zh": "活动画板上的全部"
+    },
+    {
+      "category": "Select 选择",
+      "command": "deselectall",
+      "menu_en": "Deselect",
+      "menu_zh": "取消选择"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Reselect menu item",
+      "menu_en": "Reselect",
+      "menu_zh": "重新选择"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Inverse menu item",
+      "menu_en": "Inverse",
+      "menu_zh": "反向"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 8",
+      "menu_en": "Next Object Above",
+      "menu_zh": "上面的下一个对象"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 9",
+      "menu_en": "Next Object Below",
+      "menu_zh": "下面的下一个对象"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Appearance menu item",
+      "menu_en": "Same>Appearance",
+      "menu_zh": "相同>外观"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Appearance Attributes menu item",
+      "menu_en": "Same>Appearance Attribute",
+      "menu_zh": "相同>外观属性"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Blending Mode menu item",
+      "menu_en": "Same>Blending Mode",
+      "menu_zh": "相同>混合模式"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Fill & Stroke menu item",
+      "menu_en": "Same>Fill & Stroke",
+      "menu_zh": "相同>填充和描边"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Fill Color menu item",
+      "menu_en": "Same>Fill Color",
+      "menu_zh": "相同>>填充颜色"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Opacity menu item",
+      "menu_en": "Same>Opacity",
+      "menu_zh": "相同>不透明度"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Stroke Color menu item",
+      "menu_en": "Same>Stroke Color",
+      "menu_zh": "相同>描边颜色"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Stroke Weight menu item",
+      "menu_en": "Same>Stroke Weight",
+      "menu_zh": "相同>描边粗细"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Style menu item",
+      "menu_en": "Same>Graphic Style",
+      "menu_zh": "相同>图形样式"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Symbol Instance menu item",
+      "menu_en": "Same>Symbol Instance",
+      "menu_zh": "相同>符号实例"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Find Link Block Series menu item",
+      "menu_en": "Same>Link Block Series",
+      "menu_zh": "相同>链接块系列"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 3",
+      "menu_en": "Object>All on Same Layers",
+      "menu_zh": "对象>全部在同一图层上"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 1",
+      "menu_en": "Object>Direction Handles",
+      "menu_zh": "对象>方向手柄"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 12",
+      "menu_en": "Object>Not Aligned to Pixel Grid",
+      "menu_zh": "对象>未与像素网格对齐"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Bristle Brush Strokes menu item",
+      "menu_en": "Object>Bristle Brush Strokes",
+      "menu_zh": "对象>刷毛笔触"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Brush Strokes menu item",
+      "menu_en": "Object>Brush Strokes",
+      "menu_zh": "对象>画笔描边"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Clipping Masks menu item",
+      "menu_en": "Object>Clipping Masks",
+      "menu_zh": "对象>剪切蒙版"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Stray Points menu item",
+      "menu_en": "Object>Stray Points",
+      "menu_zh": "对象>杂散点"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Text Objects menu item",
+      "menu_en": "Object>Text Objects",
+      "menu_zh": "对象>文本对象"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Dynamic Text",
+      "menu_en": "Object>Flash Dynamic Text",
+      "menu_zh": "对象>Flash动态文本"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Input Text",
+      "menu_en": "Object>Flash Input Text",
+      "menu_zh": "对象>Flash输入文本"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 10",
+      "menu_en": "Save Selection",
+      "menu_zh": "保存选区"
+    },
+    {
+      "category": "Select 选择",
+      "command": "Selection Hat 11",
+      "menu_en": "Edit Selection",
+      "menu_zh": "编辑选区"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Adobe Apply Last Effect",
+      "menu_en": "Apply Last Effect",
+      "menu_zh": "应用最后效果"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Adobe Last Effect",
+      "menu_en": "Last Effect",
+      "menu_zh": "最后效果"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Rasterize Effect Setting",
+      "menu_en": "Document Raster Effects Settings",
+      "menu_zh": "文档光栅效果设置"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live 3DExtrude",
+      "menu_en": "3D>Extrude & Bevel",
+      "menu_zh": "3D>挤压和斜面"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live 3DRevolve",
+      "menu_en": "3D>Revolve",
+      "menu_zh": "3D>旋转"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live 3DRotate",
+      "menu_en": "3D>Rotate",
+      "menu_zh": "3D>旋转"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Rectangle",
+      "menu_en": "Convert to Shape>Rectangle",
+      "menu_zh": "转换为形状>矩形"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Rounded Rectangle",
+      "menu_en": "Convert to Shape>Rounded Rectangle",
+      "menu_zh": "转换为形状>圆角矩形"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Ellipse",
+      "menu_en": "Convert to Shape>Ellipse",
+      "menu_zh": "转换为形状>椭圆"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Trim Marks",
+      "menu_en": "Crop Marks",
+      "menu_zh": "裁剪标记"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Free Distort",
+      "menu_en": "Distort & Transform>Free Distort",
+      "menu_zh": "扭曲和变换>自由扭曲"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pucker & Bloat",
+      "menu_en": "Distort & Transform>Pucker & Bloat",
+      "menu_zh": "扭曲和变换>皱皮和膨胀"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Roughen",
+      "menu_en": "Distort & Transform>Roughen",
+      "menu_zh": "扭曲和变换>粗糙"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Transform",
+      "menu_en": "Distort & Transform>Transform",
+      "menu_zh": "扭曲和变换>变换"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Scribble and Tweak",
+      "menu_en": "Distort & Transform>Tweak",
+      "menu_zh": "扭曲与变换>Tweak"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Twist",
+      "menu_en": "Distort & Transform>Twist",
+      "menu_zh": "扭曲和变换>扭曲"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Zig Zag",
+      "menu_en": "Distort & Transform>Zig Zag",
+      "menu_zh": "扭曲和变换>之字形"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Offset Path",
+      "menu_en": "Path>Offset Path",
+      "menu_zh": "路径>偏移路径"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Outline Object",
+      "menu_en": "Path>Outline Object",
+      "menu_zh": "路径>轮廓对象"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Outline Stroke",
+      "menu_en": "Path>Outline Stroke",
+      "menu_zh": "路径>轮廓描边"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Add",
+      "menu_en": "Pathfinder>Add",
+      "menu_zh": "路径查找器>添加"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Intersect",
+      "menu_en": "Pathfinder>Intersect",
+      "menu_zh": "路径查找器>相交"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Exclude",
+      "menu_en": "Pathfinder>Exclude",
+      "menu_zh": "路径查找器>排除"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Subtract",
+      "menu_en": "Pathfinder>Subtract",
+      "menu_zh": "路径查找器>减去"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Minus Back",
+      "menu_en": "Pathfinder>Minus Back",
+      "menu_zh": "路径查找器>减去返回"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Divide",
+      "menu_en": "Pathfinder>Divide",
+      "menu_zh": "路径查找器>划分"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Trim",
+      "menu_en": "Pathfinder>Trim",
+      "menu_zh": "路径查找器>修剪"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Merge",
+      "menu_en": "Pathfinder>Merge",
+      "menu_zh": "路径查找器>合并"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Crop",
+      "menu_en": "Pathfinder>Crop",
+      "menu_zh": "路径查找器>裁剪"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Outline",
+      "menu_en": "Pathfinder>Outline",
+      "menu_zh": "路径查找器>轮廓"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Hard Mix",
+      "menu_en": "Pathfinder>Hard Mix",
+      "menu_zh": "路径查找器>实时混合"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Soft Mix",
+      "menu_en": "Pathfinder>Soft Mix",
+      "menu_zh": "路径查找器>透明混合"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Pathfinder Trap",
+      "menu_en": "Pathfinder>Trap",
+      "menu_zh": "路径查找器>陷阱"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Rasterize",
+      "menu_en": "Rasterize",
+      "menu_zh": "栅格化"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Adobe Drop Shadow",
+      "menu_en": "Stylize>Drop Shadow",
+      "menu_zh": "风格化>投影"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Feather",
+      "menu_en": "Stylize>Feather",
+      "menu_zh": "风格化>羽毛"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Inner Glow",
+      "menu_en": "Stylize>Inner Glow",
+      "menu_zh": "风格化>内发光"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Outer Glow",
+      "menu_en": "Stylize>outer Glow",
+      "menu_zh": "风格化>外发光"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Adobe Round Corners",
+      "menu_en": "Stylize>Round Corners",
+      "menu_zh": "风格化>圆角"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Scribble Fill",
+      "menu_en": "Stylize>Scribble",
+      "menu_zh": "风格化>涂鸦"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live SVG Filters",
+      "menu_en": "SVG Filters>Apply SVG Filter",
+      "menu_zh": "SVG滤镜>应用SVG滤镜"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "SVG Filter Import",
+      "menu_en": "SVG Filters>Import SVG Filter",
+      "menu_zh": "SVG滤镜>导入SVG滤镜"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Arc",
+      "menu_en": "Warp>Arc",
+      "menu_zh": "翘曲>弧"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Arc Lower",
+      "menu_en": "Warp>Arc Lower",
+      "menu_zh": "翘曲>弧下"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Arc Upper",
+      "menu_en": "Warp>Arc Upper",
+      "menu_zh": "翘曲>弧上"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Arch",
+      "menu_en": "Warp>Arch",
+      "menu_zh": "翘曲>拱形"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Bulge",
+      "menu_en": "Warp>Bulge",
+      "menu_zh": "翘曲>凸起"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Shell Lower",
+      "menu_en": "Warp>Shell Lower",
+      "menu_zh": "经线>壳下部"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Shell Upper",
+      "menu_en": "Warp>Shell Upper",
+      "menu_zh": "翘曲>壳上部"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Flag",
+      "menu_en": "Warp>Flag",
+      "menu_zh": "翘曲>旗"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Wave",
+      "menu_en": "Warp>Wave",
+      "menu_zh": "翘曲>波浪"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Fish",
+      "menu_en": "Warp>Fish",
+      "menu_zh": "翘曲>鱼"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Rise",
+      "menu_en": "Warp>Rise",
+      "menu_zh": "翘曲>上升"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Fisheye",
+      "menu_en": "Warp>Fisheye",
+      "menu_zh": "翘曲>鱼眼"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Inflate",
+      "menu_en": "Warp>Inflate",
+      "menu_zh": "翘曲>膨胀"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Squeeze",
+      "menu_en": "Warp>Squeeze",
+      "menu_zh": "翘曲>挤压"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live Deform Twist",
+      "menu_en": "Warp>Twist",
+      "menu_zh": "翘曲>扭曲"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_GEfc",
+      "menu_en": "Effect Gallery",
+      "menu_zh": "效果库"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_ClrP",
+      "menu_en": "Artistic>Colored Pencil",
+      "menu_zh": "艺术>彩色铅笔"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Ct",
+      "menu_en": "Artistic>Cutout",
+      "menu_zh": "艺术>剪切"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_DryB",
+      "menu_en": "Artistic>Dry Brush",
+      "menu_zh": "艺术>干刷"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_FlmG",
+      "menu_en": "Artistic>Film Grain",
+      "menu_zh": "艺术>电影颗粒"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Frsc",
+      "menu_en": "Artistic>Fresco",
+      "menu_zh": "艺术>壁画"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_NGlw",
+      "menu_en": "Artistic>Neon Glow",
+      "menu_zh": "艺术>霓虹灯发光"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_PntD",
+      "menu_en": "Artistic>Paint Daubs",
+      "menu_zh": "艺术>油漆涂抹"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_PltK",
+      "menu_en": "Artistic>Palette Knife",
+      "menu_zh": "艺术>调色刀"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_PlsW",
+      "menu_en": "Artistic>Plastic Wrap",
+      "menu_zh": "艺术>保鲜膜"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_PstE",
+      "menu_en": "Artistic>Poster Edges",
+      "menu_zh": "艺术>海报边缘"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_RghP",
+      "menu_en": "Artistic>Rough Pastels",
+      "menu_zh": "艺术>粗糙粉彩"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_SmdS",
+      "menu_en": "Artistic>Smudge Stick",
+      "menu_zh": "艺术>涂抹棒"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Spng",
+      "menu_en": "Artistic>Sponge",
+      "menu_zh": "艺术>海绵"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Undr",
+      "menu_en": "Artistic>Underpainting",
+      "menu_zh": "艺术>底画"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Wtrc",
+      "menu_en": "Artistic>Watercolor",
+      "menu_zh": "艺术>水彩"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_GblR",
+      "menu_en": "Blur>Gaussian Blur",
+      "menu_zh": "模糊>高斯模糊"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_RdlB",
+      "menu_en": "Blur>Radial Blur",
+      "menu_zh": "模糊>拉德模糊"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_SmrB",
+      "menu_en": "Blur>Smart Blur",
+      "menu_zh": "模糊>智能模糊"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_AccE",
+      "menu_en": "Brush Strokes>Accented Edges",
+      "menu_zh": "画笔描边>强调边缘"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_AngS",
+      "menu_en": "Brush Strokes>Angled Strokes",
+      "menu_zh": "画笔描边>角度描边"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Crsh",
+      "menu_en": "Brush Strokes>Crosshatch",
+      "menu_zh": "画笔描边>剖面线"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_DrkS",
+      "menu_en": "Brush Strokes>Dark Strokes",
+      "menu_zh": "画笔描边>深色描边"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_InkO",
+      "menu_en": "Brush Strokes>Ink Outlines",
+      "menu_zh": "画笔描\u0000\u0000边>墨迹轮廓"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Spt",
+      "menu_en": "Brush Strokes>Spatter",
+      "menu_zh": "画笔描边>飞溅"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_SprS",
+      "menu_en": "Brush Strokes>Sprayed Strokes",
+      "menu_zh": "画笔描边>喷涂描边"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Smie",
+      "menu_en": "Brush Strokes>Sumi-e",
+      "menu_zh": "笔触>Sumi-e"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_DfsG",
+      "menu_en": "Distort>Diffuse Glow",
+      "menu_zh": "扭曲>漫反射发光"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Gls",
+      "menu_en": "Distort>Glass",
+      "menu_zh": "扭曲>玻璃"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_OcnR",
+      "menu_en": "Distort>Ocean Ripple",
+      "menu_zh": "扭曲>海洋波纹"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_ClrH",
+      "menu_en": "Pixelate>Color Halftone",
+      "menu_zh": "像素化>彩色半色调"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Crst",
+      "menu_en": "Pixelate>Crystallize",
+      "menu_zh": "像素化>结晶"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Mztn",
+      "menu_en": "Pixelate>Mezzotint",
+      "menu_zh": "像素化>中音"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Pntl",
+      "menu_en": "Pixelate>Pointillize",
+      "menu_zh": "像素化>点画"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_USMk",
+      "menu_en": "Sharpen>Unsharp Mask",
+      "menu_zh": "锐化>不锐化蒙版"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_BsRl",
+      "menu_en": "Sketch>Bas Relief",
+      "menu_zh": "素描>浅浮雕"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_ChlC",
+      "menu_en": "Sketch>Chalk & Charcoal",
+      "menu_zh": "素描>粉笔和木炭"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Chrc",
+      "menu_en": "Sketch>Charcoal",
+      "menu_zh": "素描>木炭"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Chrm",
+      "menu_en": "Sketch>Chrome",
+      "menu_zh": "素描>铬"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_CntC",
+      "menu_en": "Sketch>Cont￩ Crayon",
+      "menu_zh": "素描>续←蜡笔"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_GraP",
+      "menu_en": "Sketch>Graphic Pen",
+      "menu_zh": "素描>图形笔"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_HlfS",
+      "menu_en": "Sketch>Halftone Pattern",
+      "menu_zh": "素描>半色调图案"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_NtPr",
+      "menu_en": "Sketch>Note Paper",
+      "menu_zh": "素描>便笺纸"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Phtc",
+      "menu_en": "Sketch>Photocopy",
+      "menu_zh": "素描>复印"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Plst",
+      "menu_en": "Sketch>Plaster",
+      "menu_zh": "素描>石膏"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Rtcl",
+      "menu_en": "Sketch>Reticulation",
+      "menu_zh": "素描>网状"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Stmp",
+      "menu_en": "Sketch>Stamp",
+      "menu_zh": "素描>邮票"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_TrnE",
+      "menu_en": "Sketch>Torn Edges",
+      "menu_zh": "素描>撕裂的边缘"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_WtrP",
+      "menu_en": "Sketch>Water Paper",
+      "menu_zh": "素描>水纸"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_GlwE",
+      "menu_en": "Stylize>Glowing Edges",
+      "menu_zh": "风格化>发光边缘"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Crql",
+      "menu_en": "Texture>Craquelure",
+      "menu_zh": "纹理>Craquelure"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Grn",
+      "menu_en": "Texture>Grain",
+      "menu_zh": "纹理>颗粒"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_MscT",
+      "menu_en": "Texture>Mosaic Tiles",
+      "menu_zh": "纹理>马赛克瓷砖"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Ptch",
+      "menu_en": "Texture>Patchwork",
+      "menu_zh": "纹理>拼布"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_StnG",
+      "menu_en": "Texture>Stained Glass",
+      "menu_zh": "纹理>彩色玻璃"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Txtz",
+      "menu_en": "Texture>Texturizer",
+      "menu_zh": "纹理>纹理器"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_Dntr",
+      "menu_en": "Video>De-Interlace",
+      "menu_zh": "视频>去隔行"
+    },
+    {
+      "category": "Effec 效果",
+      "command": "Live PSAdapter_plugin_NTSC",
+      "menu_en": "Video>NTSC Colors",
+      "menu_zh": "视频>NTSC颜色"
+    },
+    {
+      "category": "View 视图",
+      "command": "preview",
+      "menu_en": "Preview",
+      "menu_zh": "预览"
+    },
+    {
+      "category": "View 视图",
+      "command": "ink",
+      "menu_en": "Overprint Preview",
+      "menu_zh": "叠印预览"
+    },
+    {
+      "category": "View 视图",
+      "command": "raster",
+      "menu_en": "Pixel Preview",
+      "menu_zh": "像素预览"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-document",
+      "menu_en": "Proof Setup>Document CMYK>",
+      "menu_zh": "校样设置>文档CMYK>"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-mac-rgb",
+      "menu_en": "Proof Setup>Legacy Macintosh RGB (Gamma 1.8)",
+      "menu_zh": "校样设置>传统麦金塔RGB(伽玛1.8)"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-win-rgb",
+      "menu_en": "Proof Setup>Internet Standard RGB (sRGB)",
+      "menu_zh": "校样设置>互联网标准RGB(sRGB)"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-monitor-rgb",
+      "menu_en": "Proof Setup>Monitor RGB",
+      "menu_zh": "校样设置>显示器RGB"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-colorblindp",
+      "menu_en": "Proof Setup>Color blindness – Protanopia-type",
+      "menu_zh": "校样设置>色盲–远视型"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-colorblindd",
+      "menu_en": "Proof Setup>Color blindness – Deuteranopia-type",
+      "menu_zh": "校样设置>色盲–氘视型"
+    },
+    {
+      "category": "View 视图",
+      "command": "proof-custom",
+      "menu_en": "Proof Setup>Customize",
+      "menu_zh": "校样设置>自定义"
+    },
+    {
+      "category": "View 视图",
+      "command": "proofColors",
+      "menu_en": "Proof Colors",
+      "menu_zh": "校样颜色"
+    },
+    {
+      "category": "View 视图",
+      "command": "zoomin",
+      "menu_en": "Zoom In",
+      "menu_zh": "放大"
+    },
+    {
+      "category": "View 视图",
+      "command": "zoomout",
+      "menu_en": "Zoom Out",
+      "menu_zh": "缩小"
+    },
+    {
+      "category": "View 视图",
+      "command": "fitin",
+      "menu_en": "Fit Artboard in Window",
+      "menu_zh": "画板适合窗口大小"
+    },
+    {
+      "category": "View 视图",
+      "command": "fitall",
+      "menu_en": "Fit All in Window",
+      "menu_zh": "全部适合窗口大小"
+    },
+    {
+      "category": "View 视图",
+      "command": "actualsize",
+      "menu_en": "Actual Size",
+      "menu_zh": "实际大小"
+    },
+    {
+      "category": "View 视图",
+      "command": "edge",
+      "menu_en": "Hide Edges",
+      "menu_zh": "隐藏边缘"
+    },
+    {
+      "category": "View 视图",
+      "command": "artboard",
+      "menu_en": "Hide Artboards",
+      "menu_zh": "隐藏画板"
+    },
+    {
+      "category": "View 视图",
+      "command": "pagetiling",
+      "menu_en": "Hide Print Tiling",
+      "menu_zh": "隐藏打印平铺"
+    },
+    {
+      "category": "View 视图",
+      "command": "AISlice Feedback Menu",
+      "menu_en": "Show Slices",
+      "menu_zh": "显示切片"
+    },
+    {
+      "category": "View 视图",
+      "command": "AISlice Lock Menu",
+      "menu_en": "Lock Slices",
+      "menu_zh": "锁定切片"
+    },
+    {
+      "category": "View 视图",
+      "command": "showtemplate",
+      "menu_en": "Show Template",
+      "menu_zh": "显示模板"
+    },
+    {
+      "category": "View 视图",
+      "command": "ruler",
+      "menu_en": "Rulers>Show Rulers",
+      "menu_zh": "标尺>显示标尺"
+    },
+    {
+      "category": "View 视图",
+      "command": "videoruler",
+      "menu_en": "Rulers>Show Video Rulers",
+      "menu_zh": "标尺>显示视频标尺"
+    },
+    {
+      "category": "View 视图",
+      "command": "rulerCoordinateSystem",
+      "menu_en": "Rulers>Change to Global Rulers",
+      "menu_zh": "标尺>更改为全局标尺"
+    },
+    {
+      "category": "View 视图",
+      "command": "AI Bounding Box Toggle",
+      "menu_en": "Hide Bounding Box",
+      "menu_zh": "隐藏边界框"
+    },
+    {
+      "category": "View 视图",
+      "command": "TransparencyGrid Menu Item",
+      "menu_en": "Show Transparency Grid",
+      "menu_zh": "显示透明度网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "textthreads",
+      "menu_en": "Show Text Threads",
+      "menu_zh": "显示文本线程"
+    },
+    {
+      "category": "View 视图",
+      "command": "Gradient Feedback",
+      "menu_en": "Hide Gradient Annotator",
+      "menu_zh": "隐藏渐变注释器"
+    },
+    {
+      "category": "View 视图",
+      "command": "Show Gaps Planet X",
+      "menu_en": "Show Live Paint Gaps",
+      "menu_zh": "显示实时绘画间隙"
+    },
+    {
+      "category": "View 视图",
+      "command": "showguide",
+      "menu_en": "Guides>Hide Guides",
+      "menu_zh": "参考线>隐藏参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "lockguide",
+      "menu_en": "Guides>Lock Guides",
+      "menu_zh": "参考线>锁定参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "makeguide",
+      "menu_en": "Guides>Make Guides",
+      "menu_zh": "参考线>建立参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "releaseguide",
+      "menu_en": "Guides>Release Guides",
+      "menu_zh": "参考线>释放参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "clearguide",
+      "menu_en": "Guides>Clear Guides",
+      "menu_zh": "参考线>清除参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "Snapomatic on-off menu item",
+      "menu_en": "Smart Guides",
+      "menu_zh": "智能参考线"
+    },
+    {
+      "category": "View 视图",
+      "command": "Show Perspective Grid",
+      "menu_en": "Perspective Grid>Show Grid",
+      "menu_zh": "透视网格>显示网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "Show Ruler",
+      "menu_en": "Perspective Grid>Show Rulers",
+      "menu_zh": "透视网格>显示标尺"
+    },
+    {
+      "category": "View 视图",
+      "command": "Snap to Grid",
+      "menu_en": "Perspective Grid>Snap to Grid",
+      "menu_zh": "透视网格>对齐网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "Lock Perspective Grid",
+      "menu_en": "Perspective Grid>Lock Grid",
+      "menu_zh": "透视网格>锁定网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "Lock Station Point",
+      "menu_en": "Perspective Grid>Lock Station Point",
+      "menu_zh": "透视网格>锁定站点"
+    },
+    {
+      "category": "View 视图",
+      "command": "Define Perspective Grid",
+      "menu_en": "Perspective Grid>Define Grid",
+      "menu_zh": "透视网格>定义网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "Save Perspective Grid as Preset",
+      "menu_en": "Perspective Grid>Save Grid as Preset",
+      "menu_zh": "透视网格>将网格另存为预设"
+    },
+    {
+      "category": "View 视图",
+      "command": "showgrid",
+      "menu_en": "Show Grid",
+      "menu_zh": "显示网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "snapgrid",
+      "menu_en": "Snap to Grid",
+      "menu_zh": "对齐网格"
+    },
+    {
+      "category": "View 视图",
+      "command": "snappoint",
+      "menu_en": "Snap to Point",
+      "menu_zh": "对齐点"
+    },
+    {
+      "category": "View 视图",
+      "command": "newview",
+      "menu_en": "New View",
+      "menu_zh": "新视图"
+    },
+    {
+      "category": "View 视图",
+      "command": "editview",
+      "menu_en": "Edit Views",
+      "menu_zh": "编辑视图"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "newwindow",
+      "menu_en": "New Window",
+      "menu_zh": "新窗口"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "cascade",
+      "menu_en": "Arrange>Cascade",
+      "menu_zh": "排列>级联"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "tile",
+      "menu_en": "Arrange>Tile",
+      "menu_zh": "排列>平铺"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "floatInWindow",
+      "menu_en": "Arrange>Float in Window",
+      "menu_zh": "排列>在窗口中浮动"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "floatAllInWindows",
+      "menu_en": "Arrange>Float All in Windows",
+      "menu_zh": "排列>在窗口中浮动"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "consolidateAllWindows",
+      "menu_en": "Arrange>Consolidate All Windows",
+      "menu_zh": "排列>合并所有窗口"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Save Workspace",
+      "menu_en": "Workspace>Save Workspace",
+      "menu_zh": "工作区>保存工作区"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe New Workspace",
+      "menu_en": "Workspace>New Workspace",
+      "menu_zh": "工作区>新建工作区"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Manage Workspace",
+      "menu_en": "Workspace>Manage Workspaces",
+      "menu_zh": "工作区>管理工作区"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "CSS Menu Item",
+      "menu_en": "CSS Menu",
+      "menu_zh": "CSS菜单"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AdobeBuiltInToolbox1",
+      "menu_en": "Tools",
+      "menu_zh": "工具"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Action Palette",
+      "menu_en": "Actions",
+      "menu_zh": "操作"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AdobeAlignObjects2",
+      "menu_en": "Align",
+      "menu_zh": "对齐"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Style Palette",
+      "menu_en": "Appearance",
+      "menu_zh": "外观"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Artboard Palette",
+      "menu_en": "Artboards",
+      "menu_zh": "画板"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-attributes",
+      "menu_en": "Attributes",
+      "menu_zh": "属性"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe BrushManager Menu Item",
+      "menu_en": "Brushes",
+      "menu_zh": "画笔"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Color Palette",
+      "menu_en": "Color",
+      "menu_zh": "颜色"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Harmony Palette",
+      "menu_en": "Color Guide",
+      "menu_zh": "颜色指南"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Illustrator Kuler Panel",
+      "menu_en": "Kuler Panel",
+      "menu_zh": "库勒面板"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "DocInfo1",
+      "menu_en": "Document Info",
+      "menu_zh": "文档信息"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Flattening Preview",
+      "menu_en": "Flattener Preview",
+      "menu_zh": "展平预览"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Gradient Palette",
+      "menu_en": "Gradient",
+      "menu_zh": "渐变"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Style Palette",
+      "menu_en": "Graphic Styles",
+      "menu_zh": "图形样式"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-info",
+      "menu_en": "Info",
+      "menu_zh": "信息"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AdobeLayerPalette1",
+      "menu_en": "Layers",
+      "menu_zh": "图层"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe LinkPalette Menu Item",
+      "menu_en": "Links",
+      "menu_zh": "链接"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AI Magic Wand",
+      "menu_en": "Magic Wand",
+      "menu_zh": "魔杖"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AdobeNavigator",
+      "menu_en": "Navigator",
+      "menu_zh": "导航器"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe PathfinderUI",
+      "menu_en": "Pathfinder",
+      "menu_zh": "路径查找器"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Separation Preview Panel",
+      "menu_en": "Separations Preview",
+      "menu_zh": "分色预览"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Stroke Palette",
+      "menu_en": "Stroke",
+      "menu_zh": "笔画"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe SVG Interactivity Palette",
+      "menu_en": "SVG Interactivity",
+      "menu_zh": "SVG交互性"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Swatches Menu Item",
+      "menu_en": "Swatches",
+      "menu_zh": "色板"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Symbol Palette",
+      "menu_en": "Symbols",
+      "menu_zh": "符号"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "AdobeTransformObjects1",
+      "menu_en": "Transform",
+      "menu_zh": "转换"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Transparency Palette Menu Item",
+      "menu_en": "Transparency",
+      "menu_zh": "透明度"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Variables Palette Menu Item",
+      "menu_en": "Variables",
+      "menu_zh": "变量"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-character",
+      "menu_en": "Character",
+      "menu_zh": "字符"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Character Styles",
+      "menu_en": "Character Styles",
+      "menu_zh": "字符样式"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "alternate glyph palette plugin 2",
+      "menu_en": "Glyphs",
+      "menu_zh": "glyphs"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-opentype",
+      "menu_en": "OpenType",
+      "menu_zh": "OpenType"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-paragraph",
+      "menu_en": "Paragraph",
+      "menu_zh": "段落"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Paragraph Styles Palette",
+      "menu_en": "Paragraph Styles",
+      "menu_zh": "段落样式"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "internal palettes posing as plug-in menus-tab",
+      "menu_en": "Tabs",
+      "menu_zh": "选项卡"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Art Style Plugin Other libraries menu item",
+      "menu_en": "Other Library",
+      "menu_zh": "其他库"
+    },
+    {
+      "category": "Window 窗口",
+      "command": "Adobe Symbol Palette Plugin Other libraries menu item",
+      "menu_en": "Other Library",
+      "menu_zh": "其他库"
+    },
+    {
+      "category": "Help 帮助",
+      "command": "helpcontent",
+      "menu_en": "Illustrator Help",
+      "menu_zh": "插画师帮助"
+    },
+    {
+      "category": "Help 帮助",
+      "command": "about",
+      "menu_en": "About Illustrator",
+      "menu_zh": "关于插画师"
+    },
+    {
+      "category": "Help 帮助",
+      "command": "System Info",
+      "menu_en": "System Info",
+      "menu_zh": "系统信息"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe New Symbol Shortcut",
+      "menu_en": "New Symbol",
+      "menu_zh": "新符号"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe Color Palette Secondary",
+      "menu_en": "Show Color Panel (Secondary)",
+      "menu_zh": "显示颜色面板(次要)"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe Actions Batch",
+      "menu_en": "Actions Batch",
+      "menu_zh": "动作批处理"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe New Fill Shortcut",
+      "menu_en": "Add New Fill",
+      "menu_zh": "添加新填充"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe New Stroke Shortcut",
+      "menu_en": "Add New Stroke",
+      "menu_zh": "添加新笔触"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe New Style Shortcut",
+      "menu_en": "New Graphic Style",
+      "menu_zh": "新图形样式"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "AdobeLayerPalette2",
+      "menu_en": "New Layer",
+      "menu_zh": "新建图层"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "AdobeLayerPalette3",
+      "menu_en": "New Layer with Dialog",
+      "menu_zh": "带对话框的新图层"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe Update Link Shortcut",
+      "menu_en": "Update Link",
+      "menu_zh": "更新链接"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "AdobeNavigator2",
+      "menu_en": "Navigator Options",
+      "menu_zh": "导航器选项"
+    },
+    {
+      "category": "Other Panel 其他面板",
+      "command": "Adobe New Swatch Shortcut Menu",
+      "menu_en": "New Swatch",
+      "menu_zh": "新色板"
+    }
+  ]
+}

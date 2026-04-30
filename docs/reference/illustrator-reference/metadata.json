@@ -1,0 +1,13 @@
+{
+  "generated": "2026-04-30",
+  "source": "https://judicious-night-bca.notion.site/Illustrator-Reference-bb586c9667764361b2ed3aa312049d35",
+  "lastUpdate": "2025-12-29",
+  "targetVersion": "30.0.0",
+  "menuCommandCount": 680,
+  "selectToolCount": 100,
+  "usefulForProject": [
+    "ExtendScript app.executeMenuCommand command lookup",
+    "ExtendScript app.selectTool tool-name lookup",
+    "AppleScript/JXA examples for macOS automation only"
+  ]
+}

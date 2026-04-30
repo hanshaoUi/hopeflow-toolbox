@@ -1,65 +1,73 @@
 /**
- * 转曲/扩展 - Convert to Outlines / Expand
- * Converts text to outlines and expands stroked paths.
+ * Convert to Outlines / Expand
+ * Converts text to outlines and expands strokes/appearances into paths.
  * Args: none
  */
 (function () {
     if (!$.hopeflow) return;
 
+    if (!app.documents.length) {
+        return $.hopeflow.utils.returnError('No active document');
+    }
+
     var doc = app.activeDocument;
 
-    // Check selection, if empty select all
     if (doc.selection.length === 0) {
         app.executeMenuCommand('selectall');
     }
 
     var sel = doc.selection;
-    if (!sel || sel.length === 0) return $.hopeflow.utils.returnError('无对象可操作');
+    if (!sel || sel.length === 0) {
+        return $.hopeflow.utils.returnError('No objects to process');
+    }
 
     var textCount = 0;
     var expandCount = 0;
+    var expandCommands = [];
+    var itemsToExpand = [];
+    var createdOutlines = [];
 
-    // 1. Convert Text to Outlines
-    // Process in reverse order to handle index changes
     for (var i = sel.length - 1; i >= 0; i--) {
         var item = sel[i];
         try {
             if (item.typename === 'TextFrame') {
-                item.createOutline();
+                var outlined = item.createOutline();
+                if (outlined) createdOutlines.push(outlined);
                 textCount++;
             } else if (item.typename === 'GroupItem') {
-                // Recursively find text frames in groups
+                itemsToExpand.push(item);
                 var texts = [];
                 collectTextFrames(item, texts);
                 for (var j = texts.length - 1; j >= 0; j--) {
-                    texts[j].createOutline();
+                    var groupOutlined = texts[j].createOutline();
+                    if (groupOutlined) createdOutlines.push(groupOutlined);
                     textCount++;
                 }
+            } else {
+                itemsToExpand.push(item);
             }
-        } catch (e) { /* skip items that can't be converted */ }
+        } catch (e) { }
     }
 
-    // 2. Expand Appearance & Outline Strokes
-    // Select everything currently in selection (including new outlines)
-    // In Illustrator, createOutline() usually keeps the new object selected if the original was selected, 
-    // but safe to rely on app.selection for the menu commands.
+    // createOutline() can replace or narrow the active selection. Restore a
+    // selection that includes the original non-text objects plus new outlines
+    // before running expansion commands.
+    selectItems(itemsToExpand.concat(createdOutlines));
 
-    // Attempt Expand Appearance (Object > Expand Appearance)
-    // Handles specific effects, blends, envelopes
-    try {
-        app.executeMenuCommand('expandStyle');
-        expandCount++;
-    } catch (e) { }
+    // Simulate Object > Expand for strokes/objects without opening the Expand
+    // dialog, then expand the live appearance into editable paths.
+    runMenuCommand('Live Outline Object');
+    runMenuCommand('Live Outline Stroke');
+    runMenuCommand('expandStyle');
 
-    // Attempt Outline Stroke (Object > Path > Outline Stroke)
-    // Handles standard strokes
-    try {
-        app.executeMenuCommand('outline');
-        expandCount++;
-    } catch (e) { }
+    // Fallbacks for Illustrator versions/objects that respond to the older
+    // menu command route.
+    runMenuCommand('outline');
+    runMenuCommand('expandStyle');
 
     return $.hopeflow.utils.returnResult({
         textConverted: textCount,
+        expandCommands: expandCommands,
         actionsPerformed: expandCount > 0 ? 'Expanded & Outlined' : 'None'
     });
 
@@ -73,5 +81,27 @@
                 collectTextFrames(child, result);
             }
         }
+    }
+
+    function selectItems(items) {
+        app.selection = null;
+        for (var i = 0; i < items.length; i++) {
+            try {
+                if (items[i] && !items[i].locked && !items[i].hidden) {
+                    items[i].selected = true;
+                }
+            } catch (e) { }
+        }
+    }
+
+    function runMenuCommand(commandName) {
+        try {
+            if (!doc.selection || doc.selection.length === 0) {
+                selectItems(itemsToExpand.concat(createdOutlines));
+            }
+            app.executeMenuCommand(commandName);
+            expandCount++;
+            expandCommands.push(commandName);
+        } catch (e) { }
     }
 })();

@@ -303,6 +303,111 @@
         return true;
     }
 
+    function moveIntoGroupAtBeginning(item, group) {
+        try {
+            item.move(group, ElementPlacement.PLACEATBEGINNING);
+        } catch (e) {
+            item.moveToBeginning(group);
+        }
+    }
+
+    function createGroupPreservingStack(members) {
+        if (!members || members.length < 2) return null;
+
+        members = sortByOriginalStack(members);
+        var anchor = members[0];
+        var targetLayer = anchor.layer || app.activeDocument.activeLayer;
+        var group = targetLayer.groupItems.add();
+
+        try {
+            group.move(anchor, ElementPlacement.PLACEBEFORE);
+        } catch (e) { }
+
+        for (var i = members.length - 1; i >= 0; i--) {
+            moveIntoGroupAtBeginning(members[i], group);
+        }
+
+        return group;
+    }
+
+    function sortByOriginalStack(members) {
+        var sorted = members.slice(0);
+        sorted.sort(function (a, b) {
+            var layerRankA = getLayerRank(a.layer);
+            var layerRankB = getLayerRank(b.layer);
+            if (layerRankA !== layerRankB) {
+                return layerRankA - layerRankB;
+            }
+
+            var parentA = a.parent;
+            var parentB = b.parent;
+            if (parentA === parentB && parentA && parentA.pageItems) {
+                return getStackIndex(a, parentA) - getStackIndex(b, parentA);
+            }
+
+            var itemRankA = getItemStackRank(a);
+            var itemRankB = getItemStackRank(b);
+            if (itemRankA !== itemRankB) {
+                return itemRankA - itemRankB;
+            }
+
+            return 0;
+        });
+        return sorted;
+    }
+
+    function getLayerRank(layer) {
+        if (!layer) return 999999;
+
+        var doc = app.activeDocument;
+        var rank = { value: 0, found: false, result: 999999 };
+
+        function walkLayers(layers) {
+            if (!layers || rank.found) return;
+            for (var i = 0; i < layers.length; i++) {
+                var current = layers[i];
+                if (current === layer) {
+                    rank.result = rank.value;
+                    rank.found = true;
+                    return;
+                }
+                rank.value++;
+                try {
+                    walkLayers(current.layers);
+                    if (rank.found) return;
+                } catch (e) { }
+            }
+        }
+
+        walkLayers(doc.layers);
+        return rank.result;
+    }
+
+    function getItemStackRank(item) {
+        try {
+            if (typeof item.zOrderPosition === 'number') {
+                return item.zOrderPosition;
+            }
+        } catch (e) { }
+
+        try {
+            if (item.layer && item.layer.pageItems) {
+                return getStackIndex(item, item.layer);
+            }
+        } catch (e2) { }
+
+        return 0;
+    }
+
+    function getStackIndex(item, parent) {
+        try {
+            for (var i = 0; i < parent.pageItems.length; i++) {
+                if (parent.pageItems[i] === item) return i;
+            }
+        } catch (e) { }
+        return 0;
+    }
+
     // =========================================================================
     // --- 主函数 ---
     // =========================================================================
@@ -365,11 +470,9 @@
             if (groups.hasOwnProperty(key)) {
                 var members = groups[key];
                 if (members.length > 1) {
-                    var newGroup = doc.groupItems.add();
-                    for (var m = 0; m < members.length; m++) {
-                        members[m].moveToBeginning(newGroup);
+                    if (createGroupPreservingStack(members)) {
+                        groupCount++;
                     }
-                    groupCount++;
                 }
             }
         }

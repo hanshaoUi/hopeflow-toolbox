@@ -114,7 +114,7 @@ export const Settings: React.FC = () => {
       {tab === 'libraries' && renderLibraries()}
       {tab === 'online' && renderOnline()}
       {tab === 'ai' && renderAI()}
-      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--color-text-tertiary)', paddingBottom: 4 }}>HopeFlow v3.1.402 · Illustrator Panel Settings</div>
+      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--color-text-tertiary)', paddingBottom: 4 }}>HopeFlow v3.1.403 · Illustrator Panel Settings</div>
     </div>
   );
 };
