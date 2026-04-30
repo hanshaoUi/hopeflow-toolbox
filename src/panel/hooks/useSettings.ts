@@ -8,6 +8,7 @@ export interface HFSettings {
     };
     ai: {
         defaultScale: 2 | 4;
+        defaultUpscaleEngine: 'basic' | 'realesrgan';
         defaultDenoiseLevel: 'none' | 'low' | 'medium' | 'high';
         alphaMatting: boolean;
     };
@@ -23,6 +24,7 @@ const DEFAULTS: HFSettings = {
     apiKeys: { pexels: '', pixabay: '' },
     ai: {
         defaultScale: 2,
+        defaultUpscaleEngine: 'basic',
         defaultDenoiseLevel: 'medium',
         alphaMatting: false
     },
@@ -56,6 +58,7 @@ function migrateFromOldKeys(): Partial<HFSettings> {
         if (scale || denoise || alpha !== null) {
             result.ai = {
                 defaultScale: scale === '4' ? 4 : 2,
+                defaultUpscaleEngine: 'basic',
                 defaultDenoiseLevel: denoise || 'medium',
                 alphaMatting: alpha === 'true'
             };
@@ -83,7 +86,10 @@ function migrateFromOldKeys(): Partial<HFSettings> {
 function loadSettings(): HFSettings {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) return { ...DEFAULTS, ...JSON.parse(stored) };
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return { ...DEFAULTS, ...parsed, ai: { ...DEFAULTS.ai, ...(parsed.ai || {}) } };
+        }
     } catch { }
     // First run: migrate from old individual keys.
     return { ...DEFAULTS, ...migrateFromOldKeys() };

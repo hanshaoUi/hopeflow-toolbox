@@ -23,6 +23,8 @@ function Test-PluginPackage {
     $required = @(
         'CSXS\manifest.xml',
         'dist\index.html',
+        'ai-engine\src\server.py',
+        'ai-engine\requirements.txt',
         'src\scripts\_runtime\bootstrap.jsx'
     )
 

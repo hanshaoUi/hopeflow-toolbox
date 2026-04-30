@@ -104,6 +104,7 @@ export async function checkPython(): Promise<{ available: boolean; version?: str
 export interface DependencyStatus {
     coreReady: boolean;   // torch + basicsr + realesrgan (放大功能)
     rembgReady: boolean;  // rembg (抠图功能)
+    realesrganReady: boolean;
 }
 
 export async function checkDependencies(pythonCmd: string): Promise<boolean> {
@@ -114,11 +115,12 @@ export async function checkDependencies(pythonCmd: string): Promise<boolean> {
 export async function checkDependencyDetails(pythonCmd: string): Promise<DependencyStatus> {
     // 注意: exec 外层用双引号包裹 -c 参数，Python 代码内部必须用单引号
     // 补丁 + 核心检查 (放大功能)
-    const coreScript = "import sys; import torchvision.transforms.functional as _F; sys.modules['torchvision.transforms.functional_tensor']=_F; import torch; import cv2; import PIL; import basicsr; from realesrgan import RealESRGANer; print('OK')";
+    const coreScript = "import fastapi, uvicorn, PIL, numpy, cv2; print('OK')";
     // 抠图功能检查 (注入 numba shim 以绕过 llvmlite 缺失)
-    const rembgScript = "import sys,types;nb=types.ModuleType('numba');nb.njit=lambda f=None,**k:f if f else(lambda g:g);nb.prange=range;sys.modules['numba']=nb;import rembg;print('OK')";
+    const rembgScript = "import rembg; print('OK')";
+    const realesrganScript = "import sys; import torchvision.transforms.functional as _F; sys.modules['torchvision.transforms.functional_tensor']=_F; import torch; import basicsr; from realesrgan import RealESRGANer; print('OK')";
 
-    const [coreReady, rembgReady] = await Promise.all([
+    const [coreReady, rembgReady, realesrganReady] = await Promise.all([
         new Promise<boolean>((resolve) => {
             exec(`${pythonCmd} -c "${coreScript}"`, (error: any, stdout: string) => {
                 resolve(!error && stdout.includes('OK'));
@@ -129,9 +131,14 @@ export async function checkDependencyDetails(pythonCmd: string): Promise<Depende
                 resolve(!error && stdout.includes('OK'));
             });
         }),
+        new Promise<boolean>((resolve) => {
+            exec(`${pythonCmd} -c "${realesrganScript}"`, (error: any, stdout: string) => {
+                resolve(!error && stdout.includes('OK'));
+            });
+        }),
     ]);
 
-    return { coreReady, rembgReady };
+    return { coreReady, rembgReady, realesrganReady };
 }
 
 /**
@@ -158,34 +165,15 @@ export async function installDependencies(
     onProgress?.('[准备] 升级 pip...');
     await installPackage(pythonCmd, ['--upgrade', 'pip', 'setuptools', 'wheel'], onProgress);
 
-    // 核心依赖 - 必须全部成功（放大功能）
-    const coreDeps = [
-        { name: 'Pillow', pkgs: ['Pillow'] },
-        { name: 'OpenCV', pkgs: ['opencv-python-headless'] },
-        { name: 'PyTorch', pkgs: ['torch', 'torchvision'] },
-        { name: 'BasicSR', pkgs: ['basicsr'] },
-        { name: 'Real-ESRGAN', pkgs: ['--no-deps', 'realesrgan'] },
-        { name: 'numpy (兼容版)', pkgs: ['numpy<2'] },
-    ];
-
-    // 可选依赖 - 安装失败不阻塞（抠图功能）
-    const optionalDeps = [
-        { name: 'Rembg', pkgs: ['--no-deps', 'rembg'] },
-        { name: 'Rembg 依赖', pkgs: ['--no-deps', 'pymatting'] },
-        { name: 'OnnxRuntime', pkgs: ['onnxruntime<=1.18.0'] },
-        { name: 'Rembg 其他', pkgs: ['pooch', 'jsonschema'] },
-    ];
-
-    const allDeps = [...coreDeps, ...optionalDeps];
-    for (let i = 0; i < allDeps.length; i++) {
-        const dep = allDeps[i];
-        onProgress?.(`[${i + 1}/${allDeps.length}] 安装 ${dep.name}...`);
-
-        const success = await installPackage(pythonCmd, dep.pkgs, onProgress);
-        if (!success) {
-            onProgress?.(`安装 ${dep.name} 失败`);
-        }
+    onProgress?.('安装核心依赖...');
+    const coreInstalled = await installPackage(pythonCmd, ['-r', requirementsPath], onProgress);
+    if (!coreInstalled) {
+        onProgress?.('核心依赖安装失败');
+        return false;
     }
+
+    onProgress?.('尝试安装可选抠图依赖...');
+    await installPackage(pythonCmd, ['rembg', 'onnxruntime'], onProgress);
 
     // 验证安装
     onProgress?.('验证安装...');
@@ -203,6 +191,37 @@ export async function installDependencies(
 /**
  * 安装单个包
  */
+export async function installRealESRGAN(
+    pythonCmd: string,
+    onProgress?: (message: string) => void
+): Promise<boolean> {
+    const engineDir = getEngineDir();
+    const requirementsPath = path.join(engineDir, 'requirements-realesrgan.txt');
+
+    if (!fs.existsSync(requirementsPath)) {
+        onProgress?.('错误: requirements-realesrgan.txt 不存在');
+        return false;
+    }
+
+    onProgress?.('正在安装 Real-ESRGAN 可选增强包...');
+    await installPackage(pythonCmd, ['--upgrade', 'pip', 'setuptools', 'wheel'], onProgress);
+
+    const installed = await installPackage(pythonCmd, ['-r', requirementsPath], onProgress);
+    if (!installed) {
+        onProgress?.('Real-ESRGAN 安装失败');
+        return false;
+    }
+
+    const status = await checkDependencyDetails(pythonCmd);
+    if (!status.realesrganReady) {
+        onProgress?.('Real-ESRGAN 验证失败');
+        return false;
+    }
+
+    onProgress?.('Real-ESRGAN 已安装');
+    return true;
+}
+
 function installPackage(pythonCmd: string, packages: string[], onProgress?: (message: string) => void): Promise<boolean> {
     return new Promise((resolve) => {
         const args = ['-m', 'pip', 'install', ...packages];
@@ -278,13 +297,16 @@ export async function startEngine(
 
     // 检查依赖
     onProgress?.('检查依赖...');
-    const depsInstalled = await checkDependencies(pythonInfo.path!);
-    if (!depsInstalled) {
-        onProgress?.('首次使用，需要安装依赖 (约 2GB)...');
+    const dependencyStatus = await checkDependencyDetails(pythonInfo.path!);
+    if (!dependencyStatus.coreReady) {
+        onProgress?.('首次使用，需要安装 AI 引擎依赖...');
         const installed = await installDependencies(pythonInfo.path!, onProgress);
         if (!installed) {
             return false;
         }
+    } else if (!dependencyStatus.rembgReady) {
+        onProgress?.('尝试安装可选抠图依赖...');
+        await installPackage(pythonInfo.path!, ['rembg', 'onnxruntime'], onProgress);
     }
 
     // 启动服务
@@ -340,12 +362,20 @@ export async function startEngine(
 /**
  * 停止 AI 引擎
  */
-export function stopEngine(): void {
+export async function stopEngine(): Promise<void> {
+    try {
+        await fetchWithTimeout(`${ENGINE_URL}/shutdown`, { method: 'POST' }, 3000);
+    } catch {
+        // If the HTTP shutdown path is unavailable, fall back to killing the process we own.
+    }
+
     if (engineProcess) {
         engineProcess.kill();
         engineProcess = null;
         engineReady = false;
     }
+
+    engineReady = false;
 }
 
 /**
@@ -364,6 +394,7 @@ export async function upscaleImage(
     inputPath: string,
     outputPath: string,
     scale: number = 4,
+    engine: 'basic' | 'realesrgan' = 'basic',
     grant: string = '',
     feature: string = 'ai-enhance'
 ): Promise<{ success: boolean; output?: string; error?: string }> {
@@ -371,7 +402,7 @@ export async function upscaleImage(
         const response = await fetchWithTimeout(`${ENGINE_URL}/upscale`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${readStoredToken()}` },
-            body: JSON.stringify({ input: inputPath, output: outputPath, scale, grant, feature, site_base_url: SITE_BASE_URL })
+            body: JSON.stringify({ input: inputPath, output: outputPath, scale, engine, grant, feature, site_base_url: SITE_BASE_URL })
         });
 
         return await response.json();

@@ -446,7 +446,9 @@ interface InlineResultMessage {
 }
 
 // Scripts that use undo-based preview (manual trigger)
-const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {};
+const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {
+    'banner-grommets': './src/scripts/path/banner-grommets.jsx',
+};
 
 // Scripts with specialized UIs
 const SPECIAL_UI_SCRIPTS = new Set([
@@ -483,12 +485,15 @@ const SPECIAL_UI_SCRIPTS = new Set([
     'ai-enhance',
     'open-pdf',
     'data-merge',
-    'create-guides'
+    'create-guides',
+    'random-irregular-shapes',
+    'banner-grommets'
 ]);
 
 // Scripts that need document unit info
 
 const NEEDS_UNIT_SCRIPTS = new Set([
+    'offset-bleed',
     'distribute-spacing',
     'create-artboards-from-selection',
     'fit-artboard-to-selection',
@@ -555,6 +560,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const isSpecialUI = SPECIAL_UI_SCRIPTS.has(script.id);
     const isExpandable = hasParams || isSpecialUI;
     const needsUnit = NEEDS_UNIT_SCRIPTS.has(script.id);
+    const showDocumentUnitInLabels = needsUnit && script.id !== 'offset-bleed';
     useEffect(() => {
         if (!isExpanded && error && isExpandable) {
             setError(null);
@@ -614,6 +620,19 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             await bridge.executeScript({
                 scriptId: 'parametric-array',
                 scriptPath: `./src/scripts/effects/parametric-array.jsx`,
+                args: previewArgs,
+            });
+        } catch (e) {
+            // Silently ignore preview errors
+        }
+    }, []);
+
+    const silentExecuteBlob = useCallback(async (previewArgs: Record<string, any>) => {
+        try {
+            const bridge = await getBridge();
+            await bridge.executeScript({
+                scriptId: 'random-irregular-shapes',
+                scriptPath: `./src/scripts/effects/random-irregular-shapes.jsx`,
                 args: previewArgs,
             });
         } catch (e) {
@@ -758,6 +777,35 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
     }, [script.id, isExpanded, silentExecuteParametricArray]);
 
+    // --- Blob document preview ---
+    const blobPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const blobPreviewActiveRef = useRef(false);
+
+    useEffect(() => {
+        if (script.id !== 'random-irregular-shapes') return;
+        if (!isExpanded || !blobPreviewActiveRef.current) return;
+
+        if (blobPreviewTimerRef.current) clearTimeout(blobPreviewTimerRef.current);
+        blobPreviewTimerRef.current = setTimeout(() => {
+            silentExecuteBlob({
+                ...params,
+                preview: true,
+            });
+        }, 300);
+
+        return () => {
+            if (blobPreviewTimerRef.current) clearTimeout(blobPreviewTimerRef.current);
+        };
+    }, [script.id, isExpanded, params, silentExecuteBlob]);
+
+    useEffect(() => {
+        if (script.id !== 'random-irregular-shapes') return;
+        if (!isExpanded && blobPreviewActiveRef.current) {
+            silentExecuteBlob({ clearOnly: true });
+            blobPreviewActiveRef.current = false;
+        }
+    }, [script.id, isExpanded, silentExecuteBlob]);
+
     // --- Undo-based manual preview (rich-glitch / metaball) ---
     const undoPreviewActiveRef = useRef(false);
     // Serialise all undo-preview operations so only one undo/execute runs at a time
@@ -854,6 +902,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             });
         }
     }, [needsUnit, isExpanded]);
+
+    useEffect(() => {
+        if (script.id !== 'offset-bleed' || !isExpanded || !unit) return;
+        if (!['pt', 'pc', 'in', 'mm', 'cm', 'px'].includes(unit)) return;
+        setParams(prev => {
+            if (prev.offsetUnit === unit && prev.strokeUnit === unit) return prev;
+            return { ...prev, offsetUnit: unit, strokeUnit: unit };
+        });
+    }, [script.id, isExpanded, unit]);
 
     useEffect(() => {
         if ((script.id !== 'apply-cjk-latin-fonts' && script.id !== 'select-by-font') || !isExpanded) return;
@@ -1426,6 +1483,256 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     // --- Special UI renderers (no duplicate titles: header row already shows name + info) ---
 
     function renderSpecialUI() {
+        if (script.id === 'banner-grommets') {
+            const getP = (name: string, fallback: any) => params[name] ?? fallback;
+            const setP = (name: string, value: any) => setParams(prev => ({ ...prev, [name]: value }));
+            const isSpacing = getP('countMode', 'count') === 'spacing';
+            const countPreset = getP('countPreset', 'custom');
+            const appearance = getP('appearance', 'fill');
+            const colorPreset = getP('colorPreset', 'black');
+
+            const fieldWrap: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 };
+            const labelSt: React.CSSProperties = { fontSize: '11px', color: 'var(--color-text-tertiary)', lineHeight: 1.2 };
+            const inputSt: React.CSSProperties = { height: '34px', fontSize: '13px' };
+            const sectionSt: React.CSSProperties = {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                paddingTop: '2px',
+            };
+            const rowGrid: React.CSSProperties = {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '8px 10px',
+            };
+            const segmentWrap: React.CSSProperties = {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '4px',
+                padding: '3px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-bg-tertiary)',
+            };
+            const segmentBtn = (active: boolean): React.CSSProperties => ({
+                border: 'none',
+                borderRadius: '6px',
+                background: active ? 'var(--color-accent)' : 'transparent',
+                color: active ? '#fff' : 'var(--color-text-secondary)',
+                height: '28px',
+                cursor: 'pointer',
+                fontSize: '12px',
+            });
+            const chip = (active: boolean): React.CSSProperties => ({
+                ...chipStyle(active),
+                height: '28px',
+                padding: '0 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            });
+
+            const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+                <div style={fieldWrap}>
+                    <label style={labelSt}>{label}</label>
+                    {children}
+                </div>
+            );
+
+            const Num = ({ name, fallback, min = 0, step = 1 }: { name: string; fallback: number; min?: number; step?: number }) => (
+                <input
+                    type="number"
+                    className="input"
+                    value={getP(name, fallback)}
+                    min={min}
+                    step={step}
+                    onChange={(e) => setP(name, e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    style={inputSt}
+                />
+            );
+
+            const Select = ({ name, fallback, options }: { name: string; fallback: string; options: { value: string; label: string }[] }) => (
+                <select
+                    className="select"
+                    value={getP(name, fallback)}
+                    onChange={(e) => setP(name, e.target.value)}
+                    style={inputSt}
+                >
+                    {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+            );
+
+            const QuickChip = ({ value, label }: { value: string; label: string }) => (
+                <span style={chip(countPreset === value)} onClick={() => setP('countPreset', value)}>
+                    {label}
+                </span>
+            );
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={rowGrid}>
+                        <Field label="作用范围">
+                            <Select
+                                name="target"
+                                fallback="selectionOrActiveArtboard"
+                                options={[
+                                    { value: 'selectionOrActiveArtboard', label: '选中/当前画板' },
+                                    { value: 'activeArtboard', label: '当前画板' },
+                                    { value: 'allArtboards', label: '所有画板' },
+                                ]}
+                            />
+                        </Field>
+                        <Field label="位置">
+                            <Select
+                                name="position"
+                                fallback="inside"
+                                options={[
+                                    { value: 'inside', label: '画面内' },
+                                    { value: 'outside', label: '画面外' },
+                                ]}
+                            />
+                        </Field>
+                        <Field label="圆直径 (mm)">
+                            <Num name="diameter" fallback={8} min={0.1} step={0.5} />
+                        </Field>
+                        <Field label="距边 (mm)">
+                            <Num name="margin" fallback={0} min={0} step={0.5} />
+                        </Field>
+                    </div>
+
+                    <div style={sectionSt}>
+                        <div style={segmentWrap}>
+                            <button type="button" style={segmentBtn(!isSpacing)} onClick={() => setP('countMode', 'count')}>
+                                按数量
+                            </button>
+                            <button type="button" style={segmentBtn(isSpacing)} onClick={() => setP('countMode', 'spacing')}>
+                                按间距
+                            </button>
+                        </div>
+
+                        {isSpacing ? (
+                            <Field label="打扣间距 (mm)">
+                                <Num name="spacing" fallback={500} min={1} step={10} />
+                            </Field>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                    <QuickChip value="allSame" label="四边相同" />
+                                    <QuickChip value="horizontalVertical" label="上下/左右" />
+                                    <QuickChip value="topBottomOnly" label="只打上下" />
+                                    <QuickChip value="leftRightOnly" label="只打左右" />
+                                    <QuickChip value="custom" label="分别设置" />
+                                </div>
+
+                                {countPreset === 'allSame' && (
+                                    <Field label="四边数量">
+                                        <Num name="commonCount" fallback={5} min={0} />
+                                    </Field>
+                                )}
+
+                                {(countPreset === 'horizontalVertical' || countPreset === 'topBottomOnly' || countPreset === 'leftRightOnly') && (
+                                    <div style={rowGrid}>
+                                        {countPreset !== 'leftRightOnly' && (
+                                            <Field label="上下数量">
+                                                <Num name="horizontalCount" fallback={5} min={0} />
+                                            </Field>
+                                        )}
+                                        {countPreset !== 'topBottomOnly' && (
+                                            <Field label="左右数量">
+                                                <Num name="verticalCount" fallback={4} min={0} />
+                                            </Field>
+                                        )}
+                                    </div>
+                                )}
+
+                                {countPreset === 'custom' && (
+                                    <div style={rowGrid}>
+                                        <Field label="上边">
+                                            <Num name="topCount" fallback={5} min={0} />
+                                        </Field>
+                                        <Field label="右边">
+                                            <Num name="rightCount" fallback={4} min={0} />
+                                        </Field>
+                                        <Field label="下边">
+                                            <Num name="bottomCount" fallback={5} min={0} />
+                                        </Field>
+                                        <Field label="左边">
+                                            <Num name="leftCount" fallback={4} min={0} />
+                                        </Field>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    <div style={sectionSt}>
+                        <div style={rowGrid}>
+                            <Field label="圆样式">
+                                <Select
+                                    name="appearance"
+                                    fallback="fill"
+                                    options={[
+                                        { value: 'fill', label: '实心圆' },
+                                        { value: 'stroke', label: '空心圆' },
+                                        { value: 'fillStroke', label: '填充+描边' },
+                                    ]}
+                                />
+                            </Field>
+                            <Field label="颜色">
+                                <Select
+                                    name="colorPreset"
+                                    fallback="black"
+                                    options={[
+                                        { value: 'black', label: '黑色' },
+                                        { value: 'white', label: '白色' },
+                                        { value: 'customCmyk', label: '自定义 CMYK' },
+                                    ]}
+                                />
+                            </Field>
+                            {appearance !== 'fill' && (
+                                <Field label="描边宽度 (mm)">
+                                    <Num name="strokeWidth" fallback={0.3} min={0} step={0.1} />
+                                </Field>
+                            )}
+                            <Field label="图层名称">
+                                <CompositionInput
+                                    type="text"
+                                    className="input"
+                                    value={getP('layerName', '喷绘打扣')}
+                                    onChange={(e: any) => setP('layerName', e.target.value)}
+                                    style={inputSt}
+                                />
+                            </Field>
+                        </div>
+
+                        {colorPreset === 'customCmyk' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
+                                {[
+                                    { name: 'cyan', label: 'C', fallback: 0 },
+                                    { name: 'magenta', label: 'M', fallback: 0 },
+                                    { name: 'yellow', label: 'Y', fallback: 0 },
+                                    { name: 'black', label: 'K', fallback: 100 },
+                                ].map(item => (
+                                    <Field key={item.name} label={item.label}>
+                                        <Num name={item.name} fallback={item.fallback} min={0} />
+                                    </Field>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <SuccessButton className="btn" onClick={handleUndoPreview} disabled={isExecuting} style={{ flex: 1 }}>
+                            {isExecuting ? <span className="spinner" /> : '预览'}
+                        </SuccessButton>
+                        <SuccessButton className="btn btn-primary" onClick={handleExecute} disabled={isExecuting} style={{ flex: 1 }}>
+                            {isExecuting ? <><span className="spinner" /> 执行中...</> : '执行'}
+                        </SuccessButton>
+                    </div>
+                </div>
+            );
+        }
+
         if (script.id === 'align-to-artboard') {
             return (
                 <div style={{ padding: '0 var(--spacing-sm)' }}>
@@ -3463,6 +3770,277 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             );
         }
 
+        if (script.id === 'random-irregular-shapes') {
+            const getP = (name: string, def: any) => params[name] ?? def;
+            const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+            const cleanHex = (value: any, fallback: string) => {
+                const raw = String(value || '').trim();
+                const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+                return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toUpperCase() : fallback;
+            };
+            const colorA = cleanHex(getP('colorA', '#FFA500'), '#FFA500');
+            const colorB = cleanHex(getP('colorB', '#FF6347'), '#FF6347');
+            const fillType = String(getP('fillType', 'gradient'));
+            const edges = clamp(parseInt(String(getP('edges', 8)), 10) || 8, 3, 32);
+            const smoothness = clamp(parseFloat(String(getP('smoothness', 70))) || 70, 0, 100) / 100;
+            const irregularity = clamp(parseFloat(String(getP('irregularity', 48))) || 48, 0, 100) / 100;
+            const seedValue = parseInt(String(getP('seed', 914783)), 10) || 914783;
+
+            const makeBlobPath = () => {
+                let state = seedValue;
+                const rnd = () => {
+                    state = (state * 16807) % 2147483647;
+                    return (state - 1) / 2147483646;
+                };
+                const between = (min: number, max: number) => min + rnd() * (max - min);
+                const cx = 110;
+                const cy = 92;
+                const radius = 58;
+                const angleStep = Math.PI * 2 / edges;
+                const angleJitter = angleStep * irregularity * 0.38;
+                const pts: Array<[number, number]> = [];
+
+                for (let i = 0; i < edges; i++) {
+                    const angle = -Math.PI / 2 + i * angleStep + between(-angleJitter, angleJitter);
+                    const r = radius * between(1 - irregularity * 0.42, 1 + irregularity * 0.42);
+                    pts.push([
+                        cx + Math.cos(angle) * r * between(0.84, 1.18),
+                        cy + Math.sin(angle) * r * between(0.84, 1.18),
+                    ]);
+                }
+
+                if (smoothness <= 0.01) {
+                    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ') + ' Z';
+                }
+
+                const dist = (a: [number, number], b: [number, number]) => {
+                    const dx = b[0] - a[0];
+                    const dy = b[1] - a[1];
+                    return Math.sqrt(dx * dx + dy * dy);
+                };
+                const handleScale = 0.10 + smoothness * 0.34;
+                let path = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+                for (let i = 0; i < pts.length; i++) {
+                    const curr = pts[i];
+                    const next = pts[(i + 1) % pts.length];
+                    const prev = pts[(i - 1 + pts.length) % pts.length];
+                    const nextNext = pts[(i + 2) % pts.length];
+                    const currTangent = Math.atan2(next[1] - prev[1], next[0] - prev[0]);
+                    const nextTangent = Math.atan2(nextNext[1] - curr[1], nextNext[0] - curr[0]);
+                    const c1Len = dist(curr, next) * handleScale;
+                    const c2Len = dist(next, curr) * handleScale;
+                    const c1: [number, number] = [
+                        curr[0] + Math.cos(currTangent) * c1Len,
+                        curr[1] + Math.sin(currTangent) * c1Len,
+                    ];
+                    const c2: [number, number] = [
+                        next[0] - Math.cos(nextTangent) * c2Len,
+                        next[1] - Math.sin(nextTangent) * c2Len,
+                    ];
+                    path += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${c2[0].toFixed(1)} ${c2[1].toFixed(1)}, ${next[0].toFixed(1)} ${next[1].toFixed(1)}`;
+                }
+                return path + ' Z';
+            };
+
+            const presetColors = ['#FFA500', '#FF6347', '#18DCE8', '#F43FA5', '#F3164D', '#76D900', '#9217E8', '#208CF0'];
+            const setColor = (name: 'colorA' | 'colorB', value: string) => setParams(p => ({ ...p, [name]: value.toUpperCase() }));
+            const randomize = () => {
+                const nextSeed = Math.floor(Math.random() * 999999) + 1;
+                setParams(p => ({ ...p, seed: nextSeed }));
+            };
+            const previewInDocument = async () => {
+                setError(null);
+                await silentExecuteBlob({ ...params, preview: true });
+                blobPreviewActiveRef.current = true;
+            };
+            const createBlob = async () => {
+                setError(null);
+                await silentExecuteBlob({ clearOnly: true });
+                blobPreviewActiveRef.current = false;
+                const result = await executeScriptWithAccess(params);
+                if (!result.success) setError(result.error || '执行失败');
+                else setShowSuccess(true);
+            };
+
+            const rangeControl = (name: string, label: string, min: number, max: number, suffix = '') => (
+                <div style={{ display: 'grid', gridTemplateColumns: '56px 1fr 42px', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <input
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={1}
+                        value={getP(name, name === 'edges' ? 8 : name === 'smoothness' ? 70 : 48)}
+                        onChange={(e) => setParams(p => ({ ...p, [name]: parseFloat(e.target.value) }))}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', textAlign: 'right' }}>
+                        {getP(name, name === 'edges' ? 8 : name === 'smoothness' ? 70 : 48)}{suffix}
+                    </span>
+                </div>
+            );
+
+            const colorPicker = (name: 'colorA' | 'colorB', value: string, label: string) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>{label}</span>
+                    <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => setColor(name, e.target.value)}
+                        style={{
+                            width: '34px',
+                            height: '28px',
+                            padding: 0,
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '6px',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                        }}
+                    />
+                    <CompositionInput
+                        type="text"
+                        className="input"
+                        value={value}
+                        onChange={(e: any) => setColor(name, cleanHex(e.target.value, value))}
+                        style={{ height: '28px', fontSize: '12px', flex: 1, minWidth: 0 }}
+                    />
+                </div>
+            );
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{
+                        height: '184px',
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-tertiary)',
+                        borderRadius: 'var(--radius-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                    }}>
+                        <svg viewBox="0 0 220 184" width="100%" height="100%" aria-hidden="true">
+                            <defs>
+                                <linearGradient id={`blob-preview-${script.id}`} x1="20%" y1="15%" x2="80%" y2="85%">
+                                    <stop offset="0%" stopColor={colorA} />
+                                    <stop offset="100%" stopColor={colorB} />
+                                </linearGradient>
+                            </defs>
+                            <path
+                                d={makeBlobPath()}
+                                fill={fillType === 'outline' ? 'none' : fillType === 'gradient' ? `url(#blob-preview-${script.id})` : colorA}
+                                stroke={fillType === 'outline' ? colorA : fillType === 'solid' ? colorB : 'none'}
+                                strokeWidth={fillType === 'outline' ? Math.max(1, parseFloat(String(getP('strokeWidth', 2))) || 2) : fillType === 'solid' ? Math.max(0, parseFloat(String(getP('strokeWidth', 2))) || 0) : 0}
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                        {(['gradient', 'solid', 'outline'] as const).map((mode) => (
+                            <span
+                                key={mode}
+                                style={{ ...chipStyle(fillType === mode), flex: 1, textAlign: 'center', justifyContent: 'center' }}
+                                onClick={() => setParams(p => ({ ...p, fillType: mode }))}
+                            >
+                                {mode === 'gradient' ? '渐变' : mode === 'solid' ? '实色' : '轮廓'}
+                            </span>
+                        ))}
+                    </div>
+
+                    {rangeControl('edges', '边缘', 3, 32)}
+                    {rangeControl('smoothness', '平滑度', 0, 100, '%')}
+                    {rangeControl('irregularity', '不规则度', 0, 100, '%')}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>尺寸 (mm)</label>
+                            <input
+                                type="number"
+                                className="input"
+                                min={1}
+                                step={1}
+                                value={getP('size', 80)}
+                                onChange={(e) => setParams(p => ({ ...p, size: parseFloat(e.target.value) || 80 }))}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>轮廓宽度 (pt)</label>
+                            <input
+                                type="number"
+                                className="input"
+                                min={0}
+                                step={0.25}
+                                value={getP('strokeWidth', 2)}
+                                onChange={(e) => setParams(p => ({ ...p, strokeWidth: parseFloat(e.target.value) || 0 }))}
+                                disabled={fillType === 'gradient'}
+                                style={{ opacity: fillType === 'gradient' ? 0.45 : 1 }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {presetColors.map((c) => (
+                            <button
+                                key={c}
+                                type="button"
+                                title={c}
+                                onClick={() => setColor('colorA', c)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setColor('colorB', c);
+                                }}
+                                style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: c === colorA || c === colorB ? '2px solid var(--color-text-primary)' : '1px solid var(--color-border)',
+                                    background: c,
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {colorPicker('colorA', colorA, fillType === 'outline' ? '轮廓' : '颜色 A')}
+                        {fillType !== 'outline' && colorPicker('colorB', colorB, fillType === 'solid' ? '描边' : '颜色 B')}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <select
+                            className="select"
+                            value={getP('region', 'artboard')}
+                            onChange={(e) => setParams(p => ({ ...p, region: e.target.value }))}
+                        >
+                            <option value="artboard">当前画板中心</option>
+                            <option value="selection">选区中心</option>
+                        </select>
+                        <input
+                            type="number"
+                            className="input"
+                            min={0}
+                            step={1}
+                            value={getP('seed', 0)}
+                            title="随机种子；点击随机会换一组形状"
+                            onChange={(e) => setParams(p => ({ ...p, seed: parseInt(e.target.value, 10) || 914783 }))}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: '6px' }}>
+                        <SuccessButton className="btn" onClick={randomize} disabled={isExecuting}>
+                            随机
+                        </SuccessButton>
+                        <SuccessButton className="btn" onClick={previewInDocument} disabled={isExecuting}>
+                            预览
+                        </SuccessButton>
+                        <SuccessButton className="btn btn-primary" onClick={createBlob} disabled={isExecuting}>
+                            {isExecuting ? <><span className="spinner" /> 执行中...</> : '创建'}
+                        </SuccessButton>
+                    </div>
+                </div>
+            );
+        }
+
         if (script.id === 'make-size') {
             const getP = (name: string, def: any) => params[name] ?? def;
 
@@ -3836,7 +4414,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     function renderGenericUI() {
         if (!hasParams) return null;
 
-        const allParams = script.params!;
+        const allParams = script.params!.filter((p) => {
+            if (script.id !== 'offset-bleed') return true;
+            if (params.enableStroke === false && (p.name === 'stroke' || p.name === 'strokeUnit')) return false;
+            return true;
+        });
         const boolParams = allParams.filter(p => p.type === 'boolean');
         const textareaParams = allParams.filter(p => p.type === 'textarea');
         const fieldParams = allParams.filter(p => p.type !== 'boolean' && p.type !== 'textarea');
@@ -3850,7 +4432,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <label style={{ fontSize: '11px', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>
-                            {p.label}{needsUnit && p.type === 'number' && unit ? ` (${unit})` : ''}
+                            {p.label}{showDocumentUnitInLabels && p.type === 'number' && unit ? ` (${unit})` : ''}
                         </label>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             {renderParamInput(p, params, setParams)}
@@ -3885,7 +4467,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                             <div key={p.name}>
                                 <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                                     {p.label}
-                                    {needsUnit && p.type === 'number' && unit ? ` (${unit})` : ''}
+                                    {showDocumentUnitInLabels && p.type === 'number' && unit ? ` (${unit})` : ''}
                                     {p.required && <span style={{ color: 'var(--color-error)' }}> *</span>}
                                 </label>
                                 {renderParamInput(p, params, setParams)}

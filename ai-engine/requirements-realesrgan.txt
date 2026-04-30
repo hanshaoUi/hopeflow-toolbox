@@ -1,0 +1,7 @@
+torch
+torchvision
+basicsr
+facexlib
+gfpgan
+realesrgan
+

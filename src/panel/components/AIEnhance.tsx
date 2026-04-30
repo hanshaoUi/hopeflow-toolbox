@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getBridge } from '@bridge';
 import * as AIEngine from '../services/ai-engine';
 import { useSettings } from '../hooks/useSettings';
+import { Icon } from './Icon';
 
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
 type EnhanceMode = 'upscale' | 'remove_bg' | 'denoise';
+type UpscaleEngine = 'basic' | 'realesrgan';
 
 interface AIEnhanceProps {
     onClose?: () => void;
@@ -19,6 +21,8 @@ export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
 
     const scale = settings.ai.defaultScale as 2 | 4;
     const setScale = (s: 2 | 4) => update('ai', { ...settings.ai, defaultScale: s });
+    const upscaleEngine = (settings.ai.defaultUpscaleEngine || 'basic') as UpscaleEngine;
+    const setUpscaleEngine = (engine: UpscaleEngine) => update('ai', { ...settings.ai, defaultUpscaleEngine: engine });
 
     const denoiseLevel = settings.ai.defaultDenoiseLevel;
     const setDenoiseLevel = (d: string) => update('ai', { ...settings.ai, defaultDenoiseLevel: d as 'none' | 'low' | 'medium' | 'high' });
@@ -29,6 +33,8 @@ export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [rembgAvailable, setRembgAvailable] = useState(false);
+    const [realesrganAvailable, setRealesrganAvailable] = useState(false);
+    const [isInstallingRealESRGAN, setIsInstallingRealESRGAN] = useState(false);
 
     // 检查引擎状态
     useEffect(() => {
@@ -42,6 +48,7 @@ export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
             if (pythonInfo.available && pythonInfo.path) {
                 const deps = await AIEngine.checkDependencyDetails(pythonInfo.path);
                 setRembgAvailable(deps.rembgReady);
+                setRealesrganAvailable(deps.realesrganReady);
             }
         } catch {
             // 忽略检查错误，保持 false
@@ -79,6 +86,46 @@ export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
     };
 
     // 处理图像
+    const handleStopEngine = async () => {
+        setError(null);
+        setStatusMessage('正在停止 AI 引擎...');
+        try {
+            await AIEngine.stopEngine();
+            setEngineStatus('unknown');
+            setStatusMessage('未启动');
+        } catch (e: any) {
+            setEngineStatus('error');
+            setError(e.message || '停止 AI 引擎失败');
+        }
+    };
+
+    const handleInstallRealESRGAN = async () => {
+        setError(null);
+        setSuccess(null);
+        setIsInstallingRealESRGAN(true);
+
+        try {
+            const pythonInfo = await AIEngine.checkPython();
+            if (!pythonInfo.available || !pythonInfo.path) {
+                throw new Error('未找到 Python，无法安装 Real-ESRGAN');
+            }
+
+            const installed = await AIEngine.installRealESRGAN(pythonInfo.path, (msg) => setStatusMessage(msg));
+            if (!installed) {
+                throw new Error('Real-ESRGAN 安装失败，请检查 Python/pip 环境');
+            }
+
+            setRealesrganAvailable(true);
+            setUpscaleEngine('realesrgan');
+            setSuccess('Real-ESRGAN 已安装，可使用高质量放大');
+        } catch (e: any) {
+            setError(e.message || 'Real-ESRGAN 安装失败');
+        } finally {
+            setIsInstallingRealESRGAN(false);
+            setStatusMessage('');
+        }
+    };
+
     const handleProcess = async () => {
         setError(null);
         setSuccess(null);
@@ -230,8 +277,11 @@ return JSON.stringify({
             const outputPath = inputPath.replace('_input_', '_output_');
 
             if (mode === 'upscale') {
+                if (upscaleEngine === 'realesrgan' && !realesrganAvailable) {
+                    throw new Error('Real-ESRGAN 尚未安装，请先安装可选增强包，或切换到快速模式');
+                }
                 setStatusMessage(`放大图像 (${scale}x)...`);
-                result = await AIEngine.upscaleImage(inputPath, outputPath, scale);
+                result = await AIEngine.upscaleImage(inputPath, outputPath, scale, upscaleEngine);
             } else if (mode === 'remove_bg') {
                 setStatusMessage('移除背景...');
                 const alphaMatting = settings.ai.alphaMatting;
@@ -329,9 +379,9 @@ return JSON.stringify({ success: true });
     };
 
     const modeButtons = [
-        { key: 'upscale', label: '放大', icon: 'UP', available: true },
-        { key: 'remove_bg', label: '抠图', icon: 'BG', available: rembgAvailable },
-        { key: 'denoise', label: '降噪', icon: 'DN', available: true },
+        { key: 'upscale', label: '放大', icon: 'maximize', available: true },
+        { key: 'remove_bg', label: '抠图', icon: 'crop', available: rembgAvailable },
+        { key: 'denoise', label: '降噪', icon: 'sparkle', available: true },
     ];
 
     return (
@@ -358,6 +408,23 @@ return JSON.stringify({ success: true });
                     }} />
                     <span>AI 引擎: {statusMessage || '未知'}</span>
                 </div>
+                {engineStatus === 'ready' && (
+                    <button
+                        onClick={handleStopEngine}
+                        disabled={isProcessing}
+                        style={{
+                            padding: '4px 12px',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '4px',
+                            background: 'var(--color-bg-secondary)',
+                            color: 'var(--color-text-primary)',
+                            fontSize: '11px',
+                            cursor: isProcessing ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        停止
+                    </button>
+                )}
                 {engineStatus !== 'ready' && engineStatus !== 'starting' && (
                     <button
                         onClick={handleStartEngine}
@@ -400,7 +467,9 @@ return JSON.stringify({ success: true });
                                     transition: 'all 0.2s',
                                 }}
                             >
-                                <div style={{ fontSize: '20px', marginBottom: '4px' }}>{btn.icon}</div>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>
+                                    <Icon name={btn.icon} size={22} />
+                                </div>
                                 <div style={{ fontSize: '12px' }}>{btn.label}{!btn.available ? ' (暂不可用)' : ''}</div>
                             </button>
                         );
@@ -434,6 +503,53 @@ return JSON.stringify({ success: true });
                             </button>
                         ))}
                     </div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--color-text-secondary)', margin: '12px 0 6px' }}>
+                        增强模式
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        {[
+                            { key: 'basic' as const, label: '快速', detail: '轻量稳定' },
+                            { key: 'realesrgan' as const, label: '高质量', detail: realesrganAvailable ? 'Real-ESRGAN' : '需安装' },
+                        ].map((item) => (
+                            <button
+                                key={item.key}
+                                onClick={() => setUpscaleEngine(item.key)}
+                                disabled={isProcessing || isInstallingRealESRGAN}
+                                style={{
+                                    flex: 1,
+                                    padding: '8px 10px',
+                                    border: '1px solid',
+                                    borderColor: upscaleEngine === item.key ? 'var(--color-accent)' : 'var(--color-border)',
+                                    borderRadius: '6px',
+                                    background: upscaleEngine === item.key ? 'var(--color-bg-active)' : 'var(--color-bg-secondary)',
+                                    color: upscaleEngine === item.key ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                                    cursor: isProcessing || isInstallingRealESRGAN ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                <div style={{ fontSize: '12px', fontWeight: 600 }}>{item.label}</div>
+                                <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: 2 }}>{item.detail}</div>
+                            </button>
+                        ))}
+                    </div>
+                    {upscaleEngine === 'realesrgan' && !realesrganAvailable && (
+                        <button
+                            onClick={handleInstallRealESRGAN}
+                            disabled={isInstallingRealESRGAN || isProcessing}
+                            style={{
+                                width: '100%',
+                                marginTop: '8px',
+                                minHeight: '32px',
+                                border: '1px solid var(--color-accent)',
+                                borderRadius: '6px',
+                                background: 'rgba(38,128,235,0.10)',
+                                color: 'var(--color-accent)',
+                                fontSize: '12px',
+                                cursor: isInstallingRealESRGAN || isProcessing ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            {isInstallingRealESRGAN ? '正在安装 Real-ESRGAN...' : '安装 Real-ESRGAN 可选增强包'}
+                        </button>
+                    )}
                 </div>
             )}
 

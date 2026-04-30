@@ -153,6 +153,7 @@ export class CEPBridge implements BridgeAPI {
 
     try {
       let scriptContent: string;
+      let resolvedScriptPath = '';
 
       if (params.scriptContent) {
         // Pre-decrypted content (from server or local decryption)
@@ -167,6 +168,7 @@ export class CEPBridge implements BridgeAPI {
           scriptToLoad = path.join(extensionPath, scriptToLoad);
         }
 
+        resolvedScriptPath = scriptToLoad;
         console.log(`[CEPBridge] Loading script from: ${scriptToLoad}`);
         scriptContent = fs.readFileSync(scriptToLoad, 'utf8');
       } else {
@@ -174,7 +176,7 @@ export class CEPBridge implements BridgeAPI {
       }
 
       // Wrap script with argument injection
-      const wrappedScript = this.wrapScript(params.scriptId, scriptContent, params.args);
+      const wrappedScript = this.wrapScript(params.scriptId, scriptContent, params.args, resolvedScriptPath);
 
       // Execute via CSInterface
       const rawResult = await this.evalScriptAsync(wrappedScript);
@@ -339,9 +341,11 @@ export class CEPBridge implements BridgeAPI {
   private wrapScript(
     scriptId: string,
     content: string,
-    args?: Record<string, unknown>
+    args?: Record<string, unknown>,
+    scriptPath?: string
   ): string {
     const safeScriptId = this.escapeExtendScript(scriptId);
+    const safeScriptPath = this.encodeNonAsciiForEvalScript(this.escapeExtendScript(scriptPath || ''));
     // JSON.stringify produces a string safe for JS parsing; use it as-is for the args object.
     const argsJson = JSON.stringify(args || {});
     // Encode non-ASCII (e.g. Chinese) characters as \uXXXX to survive CEP evalScript transmission.
@@ -351,11 +355,13 @@ export class CEPBridge implements BridgeAPI {
         try {
           // Internal variables for script content
           var __SCRIPT_ID__ = "${safeScriptId}";
+          var __SCRIPT_PATH__ = "${safeScriptPath}";
           var __ARGS_OBJ__ = ${argsJson};
 
           // Inject into hopeflow namespace for child scripts
           if (typeof $.hopeflow !== 'undefined') {
               $.hopeflow._currentScriptId = __SCRIPT_ID__;
+              $.hopeflow._currentScriptPath = __SCRIPT_PATH__;
               $.hopeflow._currentArgs = __ARGS_OBJ__;
               $.hopeflow._lastResult = '';
           }

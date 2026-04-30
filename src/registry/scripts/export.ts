@@ -127,6 +127,44 @@ export const exportScripts: ScriptMetadata[] = [
     icon: 'external-link',
   },
   {
+    id: 'export-artboards-ai',
+    name: '按画板导出 AI',
+    description: '将每个画板单独保存为 AI 文件，并使用画板名命名',
+    category: 'export',
+    icon: 'artboard',
+    params: [
+      {
+        name: 'outputLocation',
+        type: 'select',
+        label: '保存位置',
+        default: 'document',
+        options: [
+          { value: 'document', label: '文档目录' },
+          { value: 'desktop', label: '桌面' },
+          { value: 'custom', label: '自定义目录' },
+        ],
+      },
+      {
+        name: 'createSubfolder',
+        type: 'boolean',
+        label: '创建子文件夹',
+        default: true,
+      },
+      {
+        name: 'overwrite',
+        type: 'boolean',
+        label: '覆盖同名文件',
+        default: false,
+      },
+      {
+        name: 'pdfCompatible',
+        type: 'boolean',
+        label: 'PDF 兼容',
+        default: true,
+      },
+    ],
+  },
+  {
     id: 'split-overlap-artboards',
     name: '拼接切割',
     description: '按固定单片尺寸切割当前画板，搭接包含在单片内，并生成可导出的分片画板',

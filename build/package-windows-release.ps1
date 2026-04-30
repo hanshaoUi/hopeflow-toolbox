@@ -52,6 +52,7 @@ New-Item -ItemType Directory -Path $StageDir -Force | Out-Null
 
 $items = @(
     'CSXS',
+    'ai-engine',
     'dist',
     'src',
     'tools',
