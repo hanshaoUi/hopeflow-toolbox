@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     ScriptMetadata,
 } from '@registry/script-manifest';
@@ -406,7 +406,7 @@ const SuggestionPickerInput: React.FC<{
 // Shared grid action button style + component (used by mirror, rotate, lock, text-fit, etc.)
 const GRID_BTN: React.CSSProperties = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    gap: '4px', padding: '12px 0', background: 'var(--color-bg-tertiary)',
+    gap: '4px', padding: '12px 0', background: 'var(--color-bg-control)',
     border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
     color: 'var(--color-text-secondary)', minWidth: 'unset', height: 'auto',
 };
@@ -452,6 +452,7 @@ const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {
 
 // Scripts with specialized UIs
 const SPECIAL_UI_SCRIPTS = new Set([
+    'image-vectorize',
     'align-to-artboard',
     'distribute-spacing',
     'mirror-object',
@@ -505,12 +506,26 @@ const NEEDS_UNIT_SCRIPTS = new Set([
     'auto-group-by-intersection'
 ]);
 
+const VECTORIZE_BACKGROUND_SWATCHES = ['#FFFFFF', '#000000', '#808080', '#FF0000', '#00FF00', '#0000FF'];
+
 export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = false, onToggle }) => {
     const { settings, update } = useSettings();
-    const { executeScript, isExecuting, validateParams } = useScriptRunner();
+    const { executeScript, isExecuting: runnerIsExecuting, validateParams } = useScriptRunner();
     const [params, setParams] = useState<Record<string, any>>({});
     const [error, setError] = useState<string | null>(null);
     const [inlineResultMessage, setInlineResultMessage] = useState<InlineResultMessage | null>(null);
+    const [isAlphaExecuting, setIsAlphaExecuting] = useState(false);
+    const isExecuting = runnerIsExecuting || isAlphaExecuting;
+    const [vectorizeImage, setVectorizeImage] = useState<ImageData | null>(null);
+    const [vectorizeExport, setVectorizeExport] = useState<AlphaExportData | null>(null);
+    const [vectorizeSourceUrl, setVectorizeSourceUrl] = useState('');
+    const [vectorizeSvg, setVectorizeSvg] = useState('');
+    const [vectorizeStats, setVectorizeStats] = useState<{ regions: number; pixels: number; size: string } | null>(null);
+    const [vectorizeLoading, setVectorizeLoading] = useState(false);
+    const [vectorizeCompare, setVectorizeCompare] = useState(50);
+    const retraceFrameRef = useRef<HTMLIFrameElement | null>(null);
+    const vectorizeWorkerRef = useRef<Worker | null>(null);
+    const vectorizeRequestRef = useRef(0);
     const [presetNameInput, setPresetNameInput] = useState('');
     const [selectedPresetName, setSelectedPresetName] = useState('');
 
@@ -555,6 +570,19 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             });
         }
     }, [script.id, script.persistParams, params, settings.scriptParams, update]);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !script.params) return;
+        const missingDefaults: Record<string, any> = {};
+        script.params.forEach((param) => {
+            if (param.default !== undefined && params[param.name] === undefined) {
+                missingDefaults[param.name] = param.default;
+            }
+        });
+        if (Object.keys(missingDefaults).length) {
+            setParams((prev) => ({ ...missingDefaults, ...prev }));
+        }
+    }, [script.id, script.params, params]);
 
     const hasParams = script.params && script.params.length > 0;
     const isSpecialUI = SPECIAL_UI_SCRIPTS.has(script.id);
@@ -1255,6 +1283,430 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         setInlineResultMessage(null);
     }, [script.id]);
 
+    const handleAlphaContourExecute = async (finalParams: Record<string, any>) => {
+        setIsAlphaExecuting(true);
+        try {
+            const bridge = await getBridge();
+            const maxSide = getAlphaMaxSide(finalParams.alphaResolution);
+            const exportResult = await bridge.executeScript({
+                scriptId: 'alpha-contour',
+                scriptPath: './src/scripts/path/alpha-contour.jsx',
+                args: {
+                    ...finalParams,
+                    mode: 'exportSelection',
+                    maxSide,
+                    requireImage: true,
+                },
+            });
+
+            if (!exportResult.success) return exportResult;
+
+            const exportData = exportResult.data as AlphaExportData | undefined;
+            if (!exportData?.pngPath || !Array.isArray(exportData.bounds)) {
+                return { success: false, error: 'Alpha 导出结果无效' };
+            }
+
+            const image = await loadImageDataFromPath(exportData.pngPath);
+            const threshold = clampNumber(Number(finalParams.alphaThreshold ?? 16), 1, 254);
+            const offsetPt = convertPanelUnitToPt(Number(finalParams.offset ?? 0), String(finalParams.offsetUnit || 'pt'));
+            const pxSizeX = Math.abs((exportData.bounds[2] - exportData.bounds[0]) / image.width);
+            const pxSizeY = Math.abs((exportData.bounds[1] - exportData.bounds[3]) / image.height);
+            const pxSize = Math.max(0.001, (pxSizeX + pxSizeY) / 2);
+            const radiusPx = Math.round(Math.abs(offsetPt) / pxSize);
+            const simplify = clampNumber(Number(finalParams.alphaSimplify ?? 2), 0, 20);
+
+            let mask = alphaToMask(image.data, image.width, image.height, threshold);
+            const initialMaskPixels = countMaskPixels(mask);
+            if (initialMaskPixels === 0) {
+                return {
+                    success: false,
+                    error: `导出的图片没有检测到 Alpha 像素。请确认原图有透明背景，或降低 Alpha 阈值。导出尺寸：${image.width}x${image.height}`,
+                };
+            }
+            if (radiusPx > 0) {
+                mask = offsetPt >= 0
+                    ? morphology(mask, image.width, image.height, radiusPx, 'dilate')
+                    : morphology(mask, image.width, image.height, radiusPx, 'erode');
+            }
+            const finalMaskPixels = countMaskPixels(mask);
+            if (finalMaskPixels === 0) {
+                return {
+                    success: false,
+                    error: `偏移后 Alpha 区域为空。当前偏移量可能过大，尤其是负偏移时。原始像素：${initialMaskPixels}`,
+                };
+            }
+
+            const contour = traceLargestContour(mask, image.width, image.height);
+            if (contour.length < 3) {
+                const fallbackContour = boundingBoxContour(mask, image.width, image.height);
+                if (fallbackContour.length < 3) {
+                    return {
+                        success: false,
+                        error: `没有从图片 Alpha 中提取到有效外轮廓。Alpha 像素：${finalMaskPixels}，导出尺寸：${image.width}x${image.height}`,
+                    };
+                }
+                const points = fallbackContour.map(([x, y]) => pixelToDocumentPoint(x, y, image.width, image.height, exportData.bounds));
+                return await bridge.executeScript({
+                    scriptId: 'alpha-contour',
+                    scriptPath: './src/scripts/path/alpha-contour.jsx',
+                    args: {
+                        ...finalParams,
+                        mode: 'createContour',
+                        points,
+                    },
+                });
+            }
+
+            const simplified = simplify > 0 ? simplifyClosedPolyline(contour, simplify) : contour;
+            const capped = reducePointCount(simplified, 1800);
+            const points = capped.map(([x, y]) => pixelToDocumentPoint(x, y, image.width, image.height, exportData.bounds));
+
+            return await bridge.executeScript({
+                scriptId: 'alpha-contour',
+                scriptPath: './src/scripts/path/alpha-contour.jsx',
+                args: {
+                    ...finalParams,
+                    mode: 'createContour',
+                    points,
+                },
+            });
+        } catch (err: any) {
+            return { success: false, error: err?.message || 'Alpha 轮廓提取失败' };
+        } finally {
+            setIsAlphaExecuting(false);
+        }
+    };
+
+    const handleImageVectorizeExecute = async (finalParams: Record<string, any>, preview = false) => {
+        if (!preview) setIsAlphaExecuting(true);
+        try {
+            const bridge = await getBridge();
+            const maxSide = getAlphaMaxSide(finalParams.resolution);
+            const exportResult = await bridge.executeScript({
+                scriptId: 'image-vectorize',
+                scriptPath: './src/scripts/images/image-vectorize.jsx',
+                args: {
+                    ...finalParams,
+                    mode: 'exportSelection',
+                    maxSide,
+                    requireImage: true,
+                },
+            });
+
+            if (!exportResult.success) return exportResult;
+
+            const exportData = exportResult.data as AlphaExportData | undefined;
+            if (!exportData?.pngPath || !Array.isArray(exportData.bounds)) {
+                return { success: false, error: '图片导出结果无效' };
+            }
+
+            const image = await loadImageDataFromPath(exportData.pngPath);
+            const vectorized = vectorizeImageData(image, finalParams);
+            if (!vectorized.success) return vectorized;
+            return await bridge.executeScript({
+                scriptId: 'image-vectorize',
+                scriptPath: './src/scripts/images/image-vectorize.jsx',
+                args: {
+                    ...finalParams,
+                    mode: 'importSvg',
+                    svgCode: vectorized.svgCode,
+                    bounds: exportData.originalBounds || exportData.bounds,
+                    preview,
+                },
+            });
+        } catch (err: any) {
+            return { success: false, error: err?.message || '图片转矢量失败' };
+        } finally {
+            if (!preview) setIsAlphaExecuting(false);
+        }
+    };
+
+    const exportImageVectorizeSource = useCallback(async (finalParams: Record<string, any>) => {
+        setVectorizeLoading(true);
+        try {
+            const bridge = await getBridge();
+            const maxSide = getAlphaMaxSide(finalParams.resolution);
+            const exportResult = await bridge.executeScript({
+                scriptId: 'image-vectorize',
+                scriptPath: './src/scripts/images/image-vectorize.jsx',
+                args: {
+                    ...finalParams,
+                    mode: 'exportSelection',
+                    maxSide,
+                    requireImage: true,
+                },
+            });
+            if (!exportResult.success) {
+                setError(exportResult.error || '图片导出失败');
+                return;
+            }
+            const exportData = exportResult.data as AlphaExportData | undefined;
+            if (!exportData?.pngPath || !Array.isArray(exportData.bounds)) {
+                setError('图片导出结果无效');
+                return;
+            }
+            const image = await loadImageDataFromPath(exportData.pngPath);
+            setVectorizeImage(image);
+            setVectorizeExport(exportData);
+            setVectorizeSourceUrl(imageDataToPngDataUrl(image));
+            setVectorizeStats((prev) => ({ regions: prev?.regions || 0, pixels: prev?.pixels || 0, size: `${image.width}x${image.height}` }));
+            setError(null);
+        } catch (err: any) {
+            setError(err?.message || '图片导出失败');
+        } finally {
+            setVectorizeLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !isExpanded) return;
+        exportImageVectorizeSource(params);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [script.id, isExpanded]);
+
+    const injectSelectedImageToRetrace = useCallback(async () => {
+        if (!vectorizeSourceUrl) {
+            setError('请先读取 AI 中选中的图片');
+            return;
+        }
+        const frameDoc = retraceFrameRef.current?.contentDocument;
+        if (!frameDoc) {
+            setError('图片转矢量页面还没有加载完成');
+            return;
+        }
+        try {
+            const response = await fetch(vectorizeSourceUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'hopeflow-selection.png', { type: 'image/png' });
+            const input = frameDoc.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement | null;
+            const target = frameDoc.querySelector('.container') || frameDoc.body;
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+
+            if (input) {
+                input.files = dataTransfer.files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                target.dispatchEvent(new DragEvent('drop', {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer,
+                }));
+            }
+            setError(null);
+        } catch (err: any) {
+            setError(err?.message || '无法把选中图片送入矢量化页面');
+        }
+    }, [vectorizeSourceUrl]);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !isExpanded || !vectorizeSourceUrl) return;
+        const timer = window.setTimeout(() => {
+            injectSelectedImageToRetrace();
+        }, 180);
+        return () => window.clearTimeout(timer);
+    }, [script.id, isExpanded, vectorizeSourceUrl, injectSelectedImageToRetrace]);
+
+    const syncVectorizeParamsToRetrace = useCallback(() => {
+        const frameWin = retraceFrameRef.current?.contentWindow;
+        if (!frameWin) return;
+        const traceMode = params.traceMode || 'single';
+        const retraceParams = { ...params };
+        if (traceMode !== 'single') {
+            delete retraceParams.detailMode;
+        }
+        frameWin.postMessage({
+            type: 'hopeflow:set-vectorize-params',
+            params: retraceParams,
+        }, '*');
+    }, [params]);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !isExpanded) return;
+        const timer = window.setTimeout(syncVectorizeParamsToRetrace, 120);
+        return () => window.clearTimeout(timer);
+    }, [script.id, isExpanded, syncVectorizeParamsToRetrace]);
+
+    const renderVectorizeSvgToRetrace = useCallback((svgCode: string) => {
+        const frameWin = retraceFrameRef.current?.contentWindow;
+        if (!frameWin) return;
+        frameWin.postMessage({
+            type: 'hopeflow:render-vectorize-svg',
+            svgCode,
+            sourceUrl: vectorizeSourceUrl,
+        }, '*');
+    }, [vectorizeSourceUrl]);
+
+    const runVectorizePreview = useCallback((image: ImageData, currentParams: Record<string, any>) => {
+        const traceMode = String(currentParams.traceMode || 'single');
+        const requestId = ++vectorizeRequestRef.current;
+
+        if (!vectorizeWorkerRef.current) {
+            vectorizeWorkerRef.current = new Worker('./retrace/assets/trace-worker-CJ0-WUZ_.js', { name: 'hopeflow-vectorize-preview' });
+        }
+
+        const worker = vectorizeWorkerRef.current;
+        worker.onmessage = (event: MessageEvent) => {
+            const data = event.data || {};
+            if (data.requestId !== requestId) return;
+            if (!data.success) {
+                setError(data.error || '实时预览生成失败');
+                return;
+            }
+            const svgCode = String(data.svg || data.baseSvg || '');
+            setVectorizeSvg(svgCode);
+            setVectorizeStats((prev) => ({
+                regions: prev?.regions || 0,
+                pixels: image.width * image.height,
+                size: `${image.width}x${image.height}`,
+            }));
+            renderVectorizeSvgToRetrace(svgCode);
+            setError(null);
+        };
+        worker.onerror = (event) => {
+            if (vectorizeRequestRef.current !== requestId) return;
+            setError(event.message || '实时预览 worker 失败');
+        };
+
+        const singleDetailMode = String(currentParams.detailMode || 'auto');
+        const singleThreshold = Number(currentParams.strokeDetail ?? currentParams.autoThreshold ?? 198);
+        const singleOptions = singleDetailMode === 'auto'
+            ? {
+                threshold: singleThreshold,
+                turdsize: Number(currentParams.autoFilterSize ?? 6),
+                alphamax: 1,
+                opttolerance: 0.2,
+                turnpolicy: 'minority',
+                optcurve: true,
+                fillColor: resolveVectorizePreviewFill(currentParams.fillColor),
+            }
+            : {
+                threshold: singleThreshold,
+                turdsize: Number(currentParams.autoFilterSize ?? 6),
+                alphamax: Number(currentParams.alphamax ?? 1),
+                opttolerance: Number(currentParams.opttolerance ?? 0.2),
+                turnpolicy: String(currentParams.turnpolicy || 'minority'),
+                optcurve: currentParams.optcurve !== false,
+                fillColor: resolveVectorizePreviewFill(currentParams.fillColor),
+            };
+        const multiOptions = {
+            color_mode: String(currentParams.colorMode || 'color'),
+            mode: String(currentParams.curveFitting || 'spline'),
+            hierarchical: String(currentParams.hierarchical || 'stacked'),
+            filter_speckle: Number(currentParams.filterSpeckle ?? 8),
+            color_precision: Number(currentParams.colorPrecision ?? 6),
+            gradient_step: Number(currentParams.gradientStep ?? 32),
+            corner_threshold: Number(currentParams.cornerThreshold ?? 60),
+            segment_length: Number(currentParams.segmentLength ?? 8),
+            splice_threshold: Number(currentParams.spliceThreshold ?? 45),
+        };
+        const gradientOptions = {
+            preprocess: Number(currentParams.preprocessStrength ?? 18),
+            edgeThreshold: Number(currentParams.edgeThreshold ?? 107),
+            colorTolerance: Number(currentParams.colorTolerance ?? 50),
+            minRegionArea: Number(currentParams.minRegionArea ?? 260),
+            maxRegions: Number(currentParams.maxRegions ?? 55),
+            maxLayers: Number(currentParams.maxLayers ?? 64),
+            fitStrictness: Number(currentParams.fitStrictness ?? 11),
+            simplifyThreshold: Number(currentParams.pathSimplify ?? 0.9),
+            enableRadial: currentParams.enableRadial !== false,
+            overlayExpandPx: 1,
+            debugLeakPreview: false,
+            stackedFriendlyOutput: !!currentParams.stackedFriendlyOutput,
+        };
+
+        const preparedImage = prepareVectorizeInputImage(image, currentParams);
+        worker.postMessage({
+            id: 'hopeflow-preview',
+            requestId,
+            type: traceMode,
+            imageData: {
+                width: preparedImage.width,
+                height: preparedImage.height,
+                data: preparedImage.data,
+            },
+            options: traceMode === 'single' ? singleOptions : traceMode === 'multi' ? multiOptions : gradientOptions,
+            multiCleanEdge: !!currentParams.multiCleanEdge,
+            multiCleanEdgeBlend: Number(currentParams.blendStrength ?? 0.48),
+            multiPaletteConstraint: currentParams.multiPaletteConstraint !== false,
+            targetColors: Number(currentParams.targetColors ?? 17),
+            detectedPalette: [],
+            invert: false,
+            autoSimplify: traceMode !== 'gradient' && currentParams.autoSimplify !== false,
+            simplifyOptions: {
+                threshold: traceMode === 'single'
+                    ? Number(currentParams.simplifyThreshold ?? 0.5)
+                    : Number(currentParams.pathSimplify ?? currentParams.opttolerance ?? 0.2),
+                removeNoise: true,
+                simplify: true,
+                noiseSize: 4,
+                preserveNearLinear: true,
+                nearLinearToleranceScale: 1,
+            },
+        });
+    }, [renderVectorizeSvgToRetrace]);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !isExpanded || !vectorizeImage) return;
+        const timer = window.setTimeout(() => {
+            runVectorizePreview(vectorizeImage, params);
+        }, 160);
+        return () => window.clearTimeout(timer);
+    }, [script.id, isExpanded, vectorizeImage, params, runVectorizePreview]);
+
+    useEffect(() => {
+        return () => {
+            vectorizeWorkerRef.current?.terminate();
+            vectorizeWorkerRef.current = null;
+        };
+    }, []);
+
+    const applyVectorizeDebugger = useCallback(async () => {
+        const frameDoc = retraceFrameRef.current?.contentDocument;
+        const svg = frameDoc?.querySelector('.svg-preview svg') as SVGSVGElement | null;
+        const svgCode = vectorizeSvg || svg?.outerHTML || '';
+        if (!svgCode.trim()) {
+            setError('原版调试器里还没有可应用的 SVG');
+            return;
+        }
+        setIsAlphaExecuting(true);
+        try {
+            const bridge = await getBridge();
+            const result = await bridge.executeScript({
+                scriptId: 'image-vectorize',
+                scriptPath: './src/scripts/images/image-vectorize.jsx',
+                args: {
+                    mode: 'importSvg',
+                    svgCode,
+                    bounds: vectorizeExport?.originalBounds || vectorizeExport?.bounds,
+                },
+            });
+            if (!result.success) setError(result.error || '导入失败');
+            else {
+                setInlineResultMessage(getInlineSuccessMessage(result));
+                setShowSuccess(true);
+                setError(null);
+            }
+        } catch (err: any) {
+            setError(err?.message || '导入失败');
+        } finally {
+            setIsAlphaExecuting(false);
+        }
+    }, [getInlineSuccessMessage, vectorizeExport, vectorizeSvg]);
+
+    useEffect(() => {
+        if (script.id !== 'image-vectorize' || !isExpanded) {
+            setVectorizeImage(null);
+            setVectorizeExport(null);
+            setVectorizeSourceUrl('');
+            setVectorizeSvg('');
+            setVectorizeStats(null);
+            if (error) {
+                setError(null);
+            }
+        }
+    }, [script.id, isExpanded]);
+
     // Live preview state and effect
     const handleExecute = async () => {
         setError(null);
@@ -1279,7 +1731,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             }
         }
 
-        const result = await executeScriptWithAccess(finalParams);
+        const result = script.id === 'offset-bleed' && finalParams.contourMode === 'alpha'
+            ? await handleAlphaContourExecute(finalParams)
+            : script.id === 'image-vectorize'
+                ? await handleImageVectorizeExecute(finalParams)
+                : await executeScriptWithAccess(finalParams);
         if (!result.success) {
             setError(result.error || '执行失败');
         } else {
@@ -1290,7 +1746,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
 
     const handleGridAlign = async (alignment: string) => {
         setError(null);
-        const result = await executeScriptWithAccess({ alignment });
+        const duplicate = params['duplicate'] === true || params['duplicate'] === 'true';
+        const result = await executeScriptWithAccess({ alignment, duplicate });
         if (!result.success) {
             setError(result.error || '执行失败');
         } else {
@@ -1302,7 +1759,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         <div
             style={{
                 borderBottom: '1px solid var(--color-border)',
-                background: isExpanded ? 'var(--color-bg-secondary)' : 'transparent',
+                background: isExpanded ? 'var(--color-bg-primary)' : 'transparent',
                 transition: 'background-color 0.2s ease'
             }}
         >
@@ -1443,6 +1900,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                     <div style={{
                         padding: 'var(--spacing-sm) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg)',
                         borderTop: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-primary)',
                         animation: 'slideDown 0.2s ease-out'
                     }}>
                         {error && <div className="alert alert-error mb-md">{error}</div>}
@@ -1483,6 +1941,400 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     // --- Special UI renderers (no duplicate titles: header row already shows name + info) ---
 
     function renderSpecialUI() {
+        if (script.id === 'image-vectorize') {
+            const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
+            const getParam = (name: string) => paramMap.get(name);
+            const mode = params.traceMode || 'single';
+            const detailMode = params.detailMode || 'auto';
+            const singleFieldNames = mode === 'single'
+                ? ['strokeDetail', 'alphamax', 'opttolerance', 'turnpolicy', 'autoFilterSize', 'simplifyThreshold']
+                : [];
+            const multiFieldNames = mode === 'multi'
+                ? ['filterSpeckle', 'colorPrecision', 'targetColors', 'gradientStep', 'curveFitting', 'cornerThreshold', 'segmentLength', 'spliceThreshold', 'blendStrength']
+                : [];
+            const gradientFieldNames = mode === 'gradient'
+                ? ['preprocessStrength', 'edgeThreshold', 'colorTolerance', 'minRegionArea', 'maxRegions', 'maxLayers', 'fitStrictness', 'pathSimplify']
+                : [];
+            const fieldNames = [
+                ...singleFieldNames,
+                ...multiFieldNames,
+                ...gradientFieldNames,
+            ].filter((name, index, arr) => arr.indexOf(name) === index);
+            const boolNames = [
+                ...(mode === 'single' ? ['optcurve', 'autoSimplify'] : []),
+                ...(mode === 'multi' ? ['multiCleanEdge', 'multiPaletteConstraint'] : []),
+                ...(mode === 'gradient' ? ['enableRadial', 'stackedFriendlyOutput'] : []),
+            ];
+            const renderVectorizeNumberField = (p: any) => {
+                const rawValue = params[p.name] ?? p.default ?? p.min ?? 0;
+                const min = Number.isFinite(Number(p.min)) ? Number(p.min) : 0;
+                const max = Number.isFinite(Number(p.max)) ? Number(p.max) : 100;
+                const step = Number.isFinite(Number(p.step)) ? Number(p.step) : 1;
+                const numericValue = Number.isFinite(Number(rawValue)) ? Number(rawValue) : min;
+                const sliderValue = clampNumber(numericValue, min, max);
+                const updateValue = (nextValue: number | '') => {
+                    setParams((prev) => ({ ...prev, [p.name]: nextValue }));
+                };
+
+                return (
+                    <div key={p.name} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <label style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                                {p.label}
+                            </label>
+                            <input
+                                type="number"
+                                className="input"
+                                value={rawValue}
+                                min={min}
+                                max={max}
+                                step={step}
+                                onChange={(e) => {
+                                    const next = e.target.value;
+                                    updateValue(next === '' ? '' : parseFloat(next));
+                                }}
+                                onBlur={() => {
+                                    if (rawValue === '') updateValue(p.default ?? min);
+                                    else updateValue(clampNumber(Number(rawValue), min, max));
+                                }}
+                                style={{ width: 86, height: 30, padding: '0 8px', textAlign: 'right' }}
+                            />
+                        </div>
+                        <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            step={step}
+                            value={sliderValue}
+                            onChange={(e) => updateValue(parseFloat(e.target.value))}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                );
+            };
+            const renderVectorizeField = (name: string) => {
+                const p = getParam(name);
+                if (!p) return null;
+                if (p.type === 'number') return renderVectorizeNumberField(p);
+                return (
+                    <div key={name}>
+                        <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-tertiary)' }}>{p.label}</label>
+                        {renderParamInput(p, params, setParams)}
+                    </div>
+                );
+            };
+            const renderVectorizeBackgroundControl = () => {
+                const enabled = params.imageBackgroundEnabled ?? getParam('imageBackgroundEnabled')?.default ?? true;
+                const currentColor = normalizeHexColor(params.imageBackgroundColor || getParam('imageBackgroundColor')?.default || '#FFFFFF');
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                            <span
+                                style={{ ...chipStyle(enabled), gap: 8, padding: '6px 10px' }}
+                                onClick={() => setParams((prev) => ({ ...prev, imageBackgroundEnabled: !enabled }))}
+                            >
+                                {getParam('imageBackgroundEnabled')?.label || '图片背景色'}
+                            </span>
+                            <button
+                                type="button"
+                                title="当前背景色"
+                                onClick={() => setParams((prev) => ({ ...prev, imageBackgroundEnabled: true }))}
+                                style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 2,
+                                    border: '1px solid var(--color-border)',
+                                    background: currentColor,
+                                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            {VECTORIZE_BACKGROUND_SWATCHES.map((color) => {
+                                const active = enabled && currentColor.toUpperCase() === color;
+                                return (
+                                    <button
+                                        key={color}
+                                        type="button"
+                                        title={color}
+                                        onClick={() => setParams((prev) => ({
+                                            ...prev,
+                                            imageBackgroundEnabled: true,
+                                            imageBackgroundColor: color,
+                                        }))}
+                                        style={{
+                                            width: 38,
+                                            height: 38,
+                                            borderRadius: 5,
+                                            border: active ? '2px solid var(--color-accent)' : '1px solid rgba(255,255,255,0.18)',
+                                            background: color,
+                                            boxShadow: active ? '0 0 0 1px rgba(58,134,255,0.45)' : 'inset 0 0 0 1px rgba(0,0,0,0.18)',
+                                            cursor: 'pointer',
+                                        }}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+            const segmentButton = (name: string, value: string, label: string) => {
+                const activeValue = params[name] ?? getParam(name)?.default;
+                return (
+                    <button
+                        key={value}
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => setParams((prev) => ({ ...prev, [name]: value }))}
+                        style={{
+                            flex: 1,
+                            height: 32,
+                            padding: '0 8px',
+                            background: activeValue === value ? 'var(--color-accent-soft)' : 'var(--color-bg-control)',
+                            borderColor: activeValue === value ? 'var(--color-accent)' : 'var(--color-border)',
+                            color: activeValue === value ? '#dceeff' : 'var(--color-text-secondary)',
+                        }}
+                    >
+                        {label}
+                    </button>
+                );
+            };
+            const previewAspect = vectorizeImage ? `${vectorizeImage.width} / ${vectorizeImage.height}` : '1 / 1';
+            const previewSvg = normalizeSvgForPanelPreview(vectorizeSvg);
+            const previewBackground = params.imageBackgroundEnabled !== false
+                ? normalizeHexColor(params.imageBackgroundColor || '#FFFFFF')
+                : 'transparent';
+            const comparePct = clampNumber(Number(vectorizeCompare), 0, 100);
+            const restoreVectorizeDefaults = () => {
+                if (!script.params) return;
+                const defaults: Record<string, any> = {};
+                script.params.forEach((param) => {
+                    if (param.default !== undefined) defaults[param.name] = param.default;
+                });
+                setParams((prev) => ({
+                    ...defaults,
+                    traceMode: prev.traceMode ?? defaults.traceMode,
+                    detailMode: prev.detailMode ?? defaults.detailMode,
+                    hierarchical: prev.hierarchical ?? defaults.hierarchical,
+                }));
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-secondary)',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        height: 520,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#171717',
+                        backgroundImage: 'linear-gradient(45deg, #202020 25%, transparent 25%), linear-gradient(-45deg, #202020 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #202020 75%), linear-gradient(-45deg, transparent 75%, #202020 75%)',
+                        backgroundSize: '20px 20px',
+                        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+                        padding: 16,
+                    }}>
+                        {vectorizeSourceUrl ? (
+                            <div style={{
+                                position: 'relative',
+                                background: previewBackground,
+                                overflow: 'hidden',
+                            }}>
+                                <img
+                                    src={vectorizeSourceUrl}
+                                    alt=""
+                                    style={{
+                                        display: 'block',
+                                        maxWidth: '100%',
+                                        maxHeight: 488,
+                                        width: 'auto',
+                                        height: 'auto',
+                                        opacity: 0,
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        overflow: 'hidden',
+                                        clipPath: `inset(0 ${100 - comparePct}% 0 0)`,
+                                    }}
+                                >
+                                    <img
+                                        src={vectorizeSourceUrl}
+                                        alt=""
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            display: 'block',
+                                        }}
+                                    />
+                                </div>
+                                {previewSvg ? (
+                                    <>
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                overflow: 'hidden',
+                                                clipPath: `inset(0 0 0 ${comparePct}%)`,
+                                            }}
+                                            dangerouslySetInnerHTML={{ __html: previewSvg }}
+                                        />
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                bottom: 0,
+                                                left: `${comparePct}%`,
+                                                width: 2,
+                                                transform: 'translateX(-1px)',
+                                                background: 'rgba(255,255,255,0.86)',
+                                                boxShadow: '0 0 0 1px rgba(0,0,0,0.18), 0 0 12px rgba(0,0,0,0.32)',
+                                                pointerEvents: 'none',
+                                            }}
+                                        />
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                left: `${comparePct}%`,
+                                                top: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                width: 30,
+                                                height: 30,
+                                                borderRadius: 999,
+                                                background: 'rgba(255,255,255,0.92)',
+                                                color: '#555',
+                                                border: '1px solid rgba(0,0,0,0.18)',
+                                                boxShadow: '0 3px 12px rgba(0,0,0,0.28)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontWeight: 700,
+                                                lineHeight: 1,
+                                                pointerEvents: 'none',
+                                            }}
+                                        >
+                                            ||
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            value={comparePct}
+                                            title="原图 / 矢量对比"
+                                            onChange={(event) => setVectorizeCompare(Number(event.target.value))}
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                opacity: 0,
+                                                cursor: 'ew-resize',
+                                            }}
+                                        />
+                                    </>
+                                ) : (
+                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-tertiary)', fontSize: 12 }}>
+                                        正在生成预览...
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div style={{ color: 'var(--color-text-tertiary)', fontSize: 12 }}>请选择 1 张链接或嵌入图片</div>
+                        )}
+                    </div>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                        padding: 10,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-secondary)',
+                        borderRadius: 'var(--radius-md)',
+                    }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+                            {segmentButton('traceMode', 'single', '单色')}
+                            {segmentButton('traceMode', 'multi', '多色')}
+                            {segmentButton('traceMode', 'gradient', '渐变')}
+                        </div>
+                            <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={restoreVectorizeDefaults}
+                                style={{
+                                    height: 32,
+                                    padding: '0 12px',
+                                    whiteSpace: 'nowrap',
+                                    background: 'var(--color-bg-control)',
+                                    borderColor: 'var(--color-border)',
+                                    color: 'var(--color-text-secondary)',
+                                }}
+                            >
+                                恢复默认
+                            </button>
+                        </div>
+                        {mode === 'single' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                {segmentButton('detailMode', 'auto', '自动')}
+                                {segmentButton('detailMode', 'pro', '专业')}
+                            </div>
+                        )}
+                        {mode === 'multi' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                {segmentButton('hierarchical', 'cutout', '镂空')}
+                                {segmentButton('hierarchical', 'stacked', '堆叠')}
+                            </div>
+                        )}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr',
+                            gap: 12,
+                        }}>
+                            {fieldNames.map(renderVectorizeField)}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {boolNames.map((name) => {
+                                const p = getParam(name);
+                                if (!p) return null;
+                                const active = params[name] ?? p.default ?? false;
+                                return (
+                                    <span key={name} style={chipStyle(active)} onClick={() => setParams((prev) => ({ ...prev, [name]: !active }))}>
+                                        {p.label}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                        {mode === 'single' && renderVectorizeBackgroundControl()}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                        <SuccessButton className="btn" onClick={() => exportImageVectorizeSource(params)} disabled={isExecuting || vectorizeLoading}>
+                            {vectorizeLoading ? <><span className="spinner" /> 读取中...</> : '重新读取选中图片'}
+                        </SuccessButton>
+                        <SuccessButton className="btn" onClick={() => {
+                            if (vectorizeImage) runVectorizePreview(vectorizeImage, params);
+                        }} disabled={isExecuting || vectorizeLoading || !vectorizeImage}>
+                            刷新预览
+                        </SuccessButton>
+                        <SuccessButton className="btn btn-primary" onClick={applyVectorizeDebugger} disabled={isExecuting || !vectorizeExport}>
+                            {isExecuting ? <><span className="spinner" /> 应用中...</> : '应用到 AI'}
+                        </SuccessButton>
+                    </div>
+                    <div style={{ color: 'var(--color-text-tertiary)', fontSize: 10, textAlign: 'center' }}>
+                        {vectorizeLoading ? '正在读取 AI 当前选中图片' : vectorizeExport ? `已读取 ${vectorizeStats?.size || ''} ${vectorizeExport.itemType || ''}` : '请选择 1 张链接或嵌入图片'}
+                    </div>
+                </div>
+            );
+        }
+
         if (script.id === 'banner-grommets') {
             const getP = (name: string, fallback: any) => params[name] ?? fallback;
             const setP = (name: string, value: any) => setParams(prev => ({ ...prev, [name]: value }));
@@ -1734,9 +2586,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
 
         if (script.id === 'align-to-artboard') {
+            const duplicate = params['duplicate'] === true || params['duplicate'] === 'true';
             return (
-                <div style={{ padding: '0 var(--spacing-sm)' }}>
+                <div style={{ padding: '0 var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <AlignmentGrid onAlign={handleGridAlign} disabled={isExecuting} />
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span style={chipStyle(duplicate)} onClick={() => setParams((p) => ({ ...p, duplicate: !duplicate }))}>
+                            复制后对齐
+                        </span>
+                    </div>
                 </div>
             );
         }
@@ -1800,17 +2658,28 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
 
         if (script.id === 'mirror-object') {
-            const act = async (d: string) => { setError(null); const r = await executeScriptWithAccess({ direction: d }); if (!r.success) setError(r.error || '执行失败'); };
-            return <ActionGrid disabled={isExecuting} items={[
-                { label: '水平镜像', onClick: () => act('horizontal'), icon: <svg viewBox="0 0 24 24" style={{ width: 26, height: 26 }}><path d="M11.5 3v18h1V3h-1z" fill="currentColor" opacity="0.35" /><polygon points="5,7 9,12 5,17" fill="var(--color-accent)" /><polygon points="19,7 15,12 19,17" fill="var(--color-accent)" opacity="0.45" /></svg> },
-                { label: '垂直镜像', onClick: () => act('vertical'), icon: <svg viewBox="0 0 24 24" style={{ width: 26, height: 26 }}><path d="M3 11.5h18v1H3z" fill="currentColor" opacity="0.35" /><polygon points="7,5 12,9 17,5" fill="var(--color-accent)" /><polygon points="7,19 12,15 17,19" fill="var(--color-accent)" opacity="0.45" /></svg> },
-            ]} />;
+            const duplicate = params['duplicate'] === true || params['duplicate'] === 'true';
+            const act = async (d: string) => { setError(null); const r = await executeScriptWithAccess({ direction: d, duplicate }); if (!r.success) setError(r.error || '执行失败'); };
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <ActionGrid disabled={isExecuting} items={[
+                        { label: '水平镜像', onClick: () => act('horizontal'), icon: <svg viewBox="0 0 24 24" style={{ width: 26, height: 26 }}><path d="M11.5 3v18h1V3h-1z" fill="currentColor" opacity="0.35" /><polygon points="5,7 9,12 5,17" fill="var(--color-accent)" /><polygon points="19,7 15,12 19,17" fill="var(--color-accent)" opacity="0.45" /></svg> },
+                        { label: '垂直镜像', onClick: () => act('vertical'), icon: <svg viewBox="0 0 24 24" style={{ width: 26, height: 26 }}><path d="M3 11.5h18v1H3z" fill="currentColor" opacity="0.35" /><polygon points="7,5 12,9 17,5" fill="var(--color-accent)" /><polygon points="7,19 12,15 17,19" fill="var(--color-accent)" opacity="0.45" /></svg> },
+                    ]} />
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span style={chipStyle(duplicate)} onClick={() => setParams((p) => ({ ...p, duplicate: !duplicate }))}>
+                            复制后镜像
+                        </span>
+                    </div>
+                </div>
+            );
         }
 
         if (script.id === 'rotate-object') {
             const angle = params['angle'] ?? -90;
             const anchor = String(params['anchor'] || '5');
             const duplicate = params['duplicate'] === true || params['duplicate'] === 'true';
+            const copyCount = Math.max(1, parseInt(String(params['copyCount'] || 1), 10) || 1);
             const rotatePatterns = params['rotatePatterns'] !== false && params['rotatePatterns'] !== 'false';
             const rotateGradients = params['rotateGradients'] !== false && params['rotateGradients'] !== 'false';
             const rotateStrokePatterns = params['rotateStrokePatterns'] !== false && params['rotateStrokePatterns'] !== 'false';
@@ -1826,6 +2695,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                     angle: actualAngle,
                     anchor,
                     duplicate,
+                    copyCount,
                     rotatePatterns,
                     rotateGradients,
                     rotateStrokePatterns,
@@ -1893,6 +2763,22 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                         <span style={chipStyle(rotateStrokePatterns)} onClick={() => setParams((p) => ({ ...p, rotateStrokePatterns: !rotateStrokePatterns }))}>
                             描边图案
                         </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', opacity: duplicate ? 1 : 0.5 }}>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                            复制份数
+                        </span>
+                        <input
+                            type="number"
+                            className="input"
+                            min={1}
+                            step={1}
+                            value={copyCount}
+                            disabled={!duplicate}
+                            onChange={(e) => setParams((p) => ({ ...p, copyCount: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
+                            style={{ flex: 1, minWidth: 0 }}
+                        />
                     </div>
 
                     <SuccessButton className="btn btn-primary" onClick={() => act()} disabled={isExecuting} style={{ width: '100%' }}>
@@ -4416,6 +5302,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
 
         const allParams = script.params!.filter((p) => {
             if (script.id !== 'offset-bleed') return true;
+            if (params.contourMode !== 'alpha' && p.name.indexOf('alpha') === 0) return false;
             if (params.enableStroke === false && (p.name === 'stroke' || p.name === 'strokeUnit')) return false;
             return true;
         });
@@ -4530,6 +5417,563 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         );
     }
 };
+
+interface AlphaExportData {
+    pngPath: string;
+    originalBounds?: [number, number, number, number];
+    bounds: [number, number, number, number];
+    itemType?: string;
+    itemName?: string;
+}
+
+type Point2D = [number, number];
+
+interface VectorComponent {
+    contour: Point2D[];
+    fill: string;
+}
+
+function getAlphaMaxSide(quality: any): number {
+    if (quality === 'fast') return 640;
+    if (quality === 'fine') return 1536;
+    return 1024;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+    if (!Number.isFinite(value)) return min;
+    return Math.min(max, Math.max(min, value));
+}
+
+function convertPanelUnitToPt(value: number, unit: string): number {
+    const factors: Record<string, number> = {
+        pt: 1,
+        px: 1,
+        pc: 12,
+        in: 72,
+        mm: 72 / 25.4,
+        cm: 72 / 2.54,
+    };
+    return (Number.isFinite(value) ? value : 0) * (factors[unit] ?? 1);
+}
+
+function filePathToUrl(filePath: string): string {
+    const normalized = String(filePath || '').replace(/\\/g, '/');
+    return `file:///${encodeURI(normalized).replace(/^\/+/, '')}`;
+}
+
+function loadImageDataFromPath(filePath: string): Promise<ImageData> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('无法创建图片处理画布'));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0);
+                resolve(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            } catch (err: any) {
+                reject(new Error(err?.message || '无法读取导出的 Alpha 图片'));
+            }
+        };
+        img.onerror = () => reject(new Error('无法加载导出的 Alpha 图片'));
+        img.src = `${filePathToUrl(filePath)}?t=${Date.now()}`;
+    });
+}
+
+function imageDataToPngDataUrl(image: ImageData): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.putImageData(image, 0, 0);
+    return canvas.toDataURL('image/png');
+}
+
+function normalizeSvgForPanelPreview(svgCode: string): string {
+    if (!svgCode.trim()) return '';
+    let normalized = svgCode.trim();
+    const width = parseSvgLength(normalized.match(/\swidth=(["'])([^"']+)\1/i)?.[2]);
+    const height = parseSvgLength(normalized.match(/\sheight=(["'])([^"']+)\1/i)?.[2]);
+    const hasViewBox = /\sviewBox=(["'])[^"']+\1/i.test(normalized);
+    const fallbackViewBox = !hasViewBox && width && height ? ` viewBox="0 0 ${width} ${height}"` : '';
+    normalized = normalized.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+        const cleanAttrs = attrs
+            .replace(/\spreserveAspectRatio=(["'])[^"']*\1/i, '')
+            .replace(/\swidth=(["'])[^"']*\1/i, '')
+            .replace(/\sheight=(["'])[^"']*\1/i, '')
+            .replace(/\sstyle=(["'])[^"']*\1/i, '');
+        return `<svg${cleanAttrs}${fallbackViewBox} preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden;">`;
+    });
+    return normalized;
+}
+
+function parseSvgLength(value?: string): number | null {
+    if (!value) return null;
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function prepareVectorizeInputImage(image: ImageData, params: Record<string, any>): ImageData {
+    if (params.imageBackgroundEnabled === false) return image;
+    const bg = parseHexRgb(params.imageBackgroundColor || '#FFFFFF') || { r: 255, g: 255, b: 255 };
+    const source = image.data;
+    const data = new Uint8ClampedArray(source.length);
+    for (let i = 0; i < source.length; i += 4) {
+        const alpha = source[i + 3] / 255;
+        data[i] = Math.round(source[i] * alpha + bg.r * (1 - alpha));
+        data[i + 1] = Math.round(source[i + 1] * alpha + bg.g * (1 - alpha));
+        data[i + 2] = Math.round(source[i + 2] * alpha + bg.b * (1 - alpha));
+        data[i + 3] = 255;
+    }
+    return new ImageData(data, image.width, image.height);
+}
+
+function normalizeHexColor(value: any): string {
+    const parsed = parseHexRgb(value);
+    if (!parsed) return '#FFFFFF';
+    const part = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
+    return `#${part(parsed.r)}${part(parsed.g)}${part(parsed.b)}`;
+}
+
+function parseHexRgb(value: any): { r: number; g: number; b: number } | null {
+    const text = String(value || '').trim();
+    const match = /^#?([0-9a-f]{6})$/i.exec(text);
+    if (!match) return null;
+    const hex = match[1];
+    return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16),
+    };
+}
+
+function resolveVectorizePreviewFill(fillColor: any): string {
+    if (fillColor === 'magenta') return '#ff00ff';
+    if (fillColor === 'white') return '#ffffff';
+    return '#000000';
+}
+
+function alphaToMask(data: Uint8ClampedArray, width: number, height: number, threshold: number): Uint8Array {
+    const mask = new Uint8Array(width * height);
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+        mask[i] = data[p + 3] >= threshold ? 1 : 0;
+    }
+    return mask;
+}
+
+function alphaToMaskWithInvert(data: Uint8ClampedArray, width: number, height: number, threshold: number, invert: boolean): Uint8Array {
+    const mask = new Uint8Array(width * height);
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+        const on = data[p + 3] >= threshold;
+        mask[i] = (invert ? !on : on) ? 1 : 0;
+    }
+    return mask;
+}
+
+function luminanceToMask(data: Uint8ClampedArray, width: number, height: number, threshold: number, invert: boolean): Uint8Array {
+    const mask = new Uint8Array(width * height);
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+        if (data[p + 3] < 8) {
+            mask[i] = 0;
+            continue;
+        }
+        const lum = data[p] * 0.2126 + data[p + 1] * 0.7152 + data[p + 2] * 0.0722;
+        const on = lum < threshold;
+        mask[i] = (invert ? !on : on) ? 1 : 0;
+    }
+    return mask;
+}
+
+function vectorizeImageData(image: ImageData, params: Record<string, any>): {
+    success: true;
+    svgCode: string;
+    regions: number;
+    pixels: number;
+} | {
+    success: false;
+    error: string;
+} {
+    const workingImage = prepareVectorizeInputImage(image, params);
+    const traceMode = String(params.traceMode || 'single');
+    const threshold = clampNumber(Number(params.strokeDetail ?? params.autoThreshold ?? params.threshold ?? 198), 1, 254);
+    const invert = params.invert === true || params.invert === 'true';
+    const source = String(params.source || 'alpha');
+    const speckleRaw = traceMode === 'multi' ? params.filterSpeckle : (params.turdsize ?? params.autoFilterSize);
+    const speckle = Math.max(0, Math.round(Number(speckleRaw ?? params.speckle ?? 16) || 0));
+    const simplify = clampNumber(Number(params.opttolerance ?? params.simplify ?? 2), 0, 30);
+    const smooth = params.optcurve !== false && params.optcurve !== 'false' && params.smoothResult !== false && params.smoothResult !== 'false';
+    const mask = source === 'luminance'
+        ? luminanceToMask(workingImage.data, workingImage.width, workingImage.height, threshold, invert)
+        : alphaToMaskWithInvert(workingImage.data, workingImage.width, workingImage.height, threshold, invert);
+
+    const maskPixels = countMaskPixels(mask);
+    if (maskPixels === 0) {
+        return { success: false, error: `没有检测到可矢量化区域。导出尺寸：${workingImage.width}x${workingImage.height}` };
+    }
+
+    const components = extractVectorComponents(mask, workingImage, speckle, simplify, smooth, String(params.fillColor || 'black'));
+    if (!components.length) {
+        return { success: false, error: `没有保留下来的矢量区域。可以降低“去噪面积”。原始像素：${maskPixels}` };
+    }
+
+    return {
+        success: true,
+        svgCode: buildVectorSvg(workingImage.width, workingImage.height, components, smooth),
+        regions: components.length,
+        pixels: maskPixels,
+    };
+}
+
+function countMaskPixels(mask: Uint8Array): number {
+    let count = 0;
+    for (let i = 0; i < mask.length; i++) count += mask[i];
+    return count;
+}
+
+function extractVectorComponents(
+    mask: Uint8Array,
+    image: ImageData,
+    minArea: number,
+    simplify: number,
+    smooth: boolean,
+    fillMode: string
+): VectorComponent[] {
+    const remaining = new Uint8Array(mask);
+    const components: VectorComponent[] = [];
+    const maxComponents = 256;
+
+    for (let i = 0; i < maxComponents; i++) {
+        const component = largestComponentMask(remaining, image.width, image.height);
+        const area = countMaskPixels(component);
+        if (area <= 0) break;
+
+        for (let p = 0; p < remaining.length; p++) {
+            if (component[p]) remaining[p] = 0;
+        }
+
+        if (area < minArea) continue;
+        let contour = traceLargestContour(component, image.width, image.height);
+        if (contour.length < 3) contour = boundingBoxContour(component, image.width, image.height);
+        if (contour.length < 3) continue;
+        contour = simplify > 0 ? simplifyClosedPolyline(contour, simplify) : contour;
+        contour = reducePointCount(contour, 2400);
+        components.push({
+            contour,
+            fill: resolveVectorFill(fillMode, image, component),
+        });
+    }
+
+    return components;
+}
+
+function resolveVectorFill(fillMode: string, image: ImageData, mask: Uint8Array): string {
+    if (fillMode === 'magenta') return '#E6007E';
+    if (fillMode !== 'original') return '#000000';
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let count = 0;
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+        if (!mask[i] || image.data[p + 3] < 8) continue;
+        r += image.data[p];
+        g += image.data[p + 1];
+        b += image.data[p + 2];
+        count += 1;
+    }
+    if (!count) return '#000000';
+    return rgbToHex(Math.round(r / count), Math.round(g / count), Math.round(b / count));
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+    const toHex = (value: number) => clampNumber(value, 0, 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+function buildVectorSvg(width: number, height: number, components: VectorComponent[], smooth: boolean): string {
+    const paths = components
+        .sort((a, b) => Math.abs(polygonArea(b.contour)) - Math.abs(polygonArea(a.contour)))
+        .map((component) => `<path d="${pointsToSvgPath(component.contour, smooth)}" fill="${component.fill}" fill-rule="evenodd"/>`)
+        .join('');
+    const boundsMarker = `<rect id="__hopeflow_vector_bounds__" x="0" y="0" width="${width}" height="${height}" fill="#FFFFFF" opacity="0.001"/>`;
+    return `<svg version="1.1" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${boundsMarker}${paths}</svg>`;
+}
+
+function pointsToSvgPath(points: Point2D[], smooth: boolean): string {
+    if (!points.length) return '';
+    const fmt = (value: number) => Number.isFinite(value) ? Number(value.toFixed(3)).toString() : '0';
+    let path = `M${fmt(points[0][0])} ${fmt(points[0][1])}`;
+    if (smooth && points.length >= 4) {
+        for (let i = 0; i < points.length; i++) {
+            const p0 = points[(i - 1 + points.length) % points.length];
+            const p1 = points[i];
+            const p2 = points[(i + 1) % points.length];
+            const p3 = points[(i + 2) % points.length];
+            const c1: Point2D = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+            const c2: Point2D = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+            path += ` C${fmt(c1[0])} ${fmt(c1[1])},${fmt(c2[0])} ${fmt(c2[1])},${fmt(p2[0])} ${fmt(p2[1])}`;
+        }
+    } else {
+        for (let i = 1; i < points.length; i++) path += ` L${fmt(points[i][0])} ${fmt(points[i][1])}`;
+    }
+    return `${path} Z`;
+}
+
+function morphology(mask: Uint8Array, width: number, height: number, radius: number, mode: 'dilate' | 'erode'): Uint8Array {
+    if (radius <= 0) return mask;
+    const horizontal = new Uint8Array(width * height);
+    const output = new Uint8Array(width * height);
+    const wantAll = mode === 'erode';
+
+    for (let y = 0; y < height; y++) {
+        const prefix = new Int32Array(width + 1);
+        for (let x = 0; x < width; x++) prefix[x + 1] = prefix[x] + mask[y * width + x];
+        for (let x = 0; x < width; x++) {
+            const left = Math.max(0, x - radius);
+            const right = Math.min(width - 1, x + radius);
+            const count = prefix[right + 1] - prefix[left];
+            horizontal[y * width + x] = wantAll ? (count === right - left + 1 ? 1 : 0) : (count > 0 ? 1 : 0);
+        }
+    }
+
+    for (let x = 0; x < width; x++) {
+        const prefix = new Int32Array(height + 1);
+        for (let y = 0; y < height; y++) prefix[y + 1] = prefix[y] + horizontal[y * width + x];
+        for (let y = 0; y < height; y++) {
+            const top = Math.max(0, y - radius);
+            const bottom = Math.min(height - 1, y + radius);
+            const count = prefix[bottom + 1] - prefix[top];
+            output[y * width + x] = wantAll ? (count === bottom - top + 1 ? 1 : 0) : (count > 0 ? 1 : 0);
+        }
+    }
+
+    return output;
+}
+
+function traceLargestContour(mask: Uint8Array, width: number, height: number): Point2D[] {
+    const component = largestComponentMask(mask, width, height);
+    const dirs: Point2D[] = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+    const isOn = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height && component[y * width + x] === 1;
+    const isBoundary = (x: number, y: number) => {
+        if (!isOn(x, y)) return false;
+        return !isOn(x - 1, y) || !isOn(x + 1, y) || !isOn(x, y - 1) || !isOn(x, y + 1);
+    };
+
+    let sx = -1;
+    let sy = -1;
+    for (let y = 0; y < height && sy < 0; y++) {
+        for (let x = 0; x < width; x++) {
+            if (isBoundary(x, y)) {
+                sx = x;
+                sy = y;
+                break;
+            }
+        }
+    }
+    if (sx < 0 || sy < 0) return [];
+
+    let px = sx;
+    let py = sy;
+    let bx = sx - 1;
+    let by = sy;
+    const contour: Point2D[] = [];
+    const maxSteps = Math.max(width * height * 4, 1000);
+
+    for (let steps = 0; steps < maxSteps; steps++) {
+        contour.push([px + 0.5, py + 0.5]);
+
+        const backDir = directionIndex(bx - px, by - py);
+        let found = false;
+        let nextX = px;
+        let nextY = py;
+        let nextBackX = bx;
+        let nextBackY = by;
+
+        for (let i = 0; i < 8; i++) {
+            const dirIndex = (backDir + i) % 8;
+            const dx = dirs[dirIndex][0];
+            const dy = dirs[dirIndex][1];
+            const cx = px + dx;
+            const cy = py + dy;
+            if (!isOn(cx, cy)) continue;
+
+            const prevDir = (dirIndex + 7) % 8;
+            nextX = cx;
+            nextY = cy;
+            nextBackX = px + dirs[prevDir][0];
+            nextBackY = py + dirs[prevDir][1];
+            found = true;
+            break;
+        }
+
+        if (!found) break;
+        px = nextX;
+        py = nextY;
+        bx = nextBackX;
+        by = nextBackY;
+
+        if (px === sx && py === sy && contour.length > 2) break;
+    }
+
+    return contour.length >= 3 ? contour : [];
+}
+
+function largestComponentMask(mask: Uint8Array, width: number, height: number): Uint8Array {
+    const visited = new Uint8Array(mask.length);
+    const best = new Uint8Array(mask.length);
+    const queue = new Int32Array(mask.length);
+    const dirs: Point2D[] = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+    let bestPixels: number[] = [];
+
+    for (let start = 0; start < mask.length; start++) {
+        if (!mask[start] || visited[start]) continue;
+        let head = 0;
+        let tail = 0;
+        const pixels: number[] = [];
+        queue[tail++] = start;
+        visited[start] = 1;
+
+        while (head < tail) {
+            const idx = queue[head++];
+            pixels.push(idx);
+            const x = idx % width;
+            const y = Math.floor(idx / width);
+            for (const [dx, dy] of dirs) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                const ni = ny * width + nx;
+                if (!mask[ni] || visited[ni]) continue;
+                visited[ni] = 1;
+                queue[tail++] = ni;
+            }
+        }
+
+        if (pixels.length > bestPixels.length) bestPixels = pixels;
+    }
+
+    for (const idx of bestPixels) best[idx] = 1;
+    return best;
+}
+
+function directionIndex(dx: number, dy: number): number {
+    if (dx === 1 && dy === 0) return 0;
+    if (dx === 1 && dy === 1) return 1;
+    if (dx === 0 && dy === 1) return 2;
+    if (dx === -1 && dy === 1) return 3;
+    if (dx === -1 && dy === 0) return 4;
+    if (dx === -1 && dy === -1) return 5;
+    if (dx === 0 && dy === -1) return 6;
+    return 7;
+}
+
+function boundingBoxContour(mask: Uint8Array, width: number, height: number): Point2D[] {
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (!mask[y * width + x]) continue;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + 1);
+            maxY = Math.max(maxY, y + 1);
+        }
+    }
+    if (maxX <= minX || maxY <= minY) return [];
+    return [[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY]];
+}
+
+function polygonArea(points: Point2D[]): number {
+    let area = 0;
+    for (let i = 0; i < points.length; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        area += a[0] * b[1] - b[0] * a[1];
+    }
+    return area / 2;
+}
+
+function simplifyClosedPolyline(points: Point2D[], tolerance: number): Point2D[] {
+    if (points.length <= 4 || tolerance <= 0) return points;
+    const startIndex = points.reduce((best, point, index) => {
+        const bestPoint = points[best];
+        return point[0] < bestPoint[0] || (point[0] === bestPoint[0] && point[1] < bestPoint[1]) ? index : best;
+    }, 0);
+    const rotated = points.slice(startIndex).concat(points.slice(0, startIndex));
+    const open = rotated.concat([rotated[0]]);
+    const simplified = simplifyPolyline(open, tolerance);
+    if (simplified.length > 1) simplified.pop();
+    return simplified.length >= 3 ? simplified : points;
+}
+
+function simplifyPolyline(points: Point2D[], tolerance: number): Point2D[] {
+    if (points.length <= 2) return points;
+    const keep = new Uint8Array(points.length);
+    keep[0] = 1;
+    keep[points.length - 1] = 1;
+    const stack: Array<[number, number]> = [[0, points.length - 1]];
+    const toleranceSq = tolerance * tolerance;
+
+    while (stack.length) {
+        const [start, end] = stack.pop()!;
+        let maxDist = 0;
+        let index = -1;
+        for (let i = start + 1; i < end; i++) {
+            const dist = pointLineDistanceSq(points[i], points[start], points[end]);
+            if (dist > maxDist) {
+                maxDist = dist;
+                index = i;
+            }
+        }
+        if (index >= 0 && maxDist > toleranceSq) {
+            keep[index] = 1;
+            stack.push([start, index], [index, end]);
+        }
+    }
+
+    return points.filter((_, index) => keep[index]);
+}
+
+function pointLineDistanceSq(point: Point2D, start: Point2D, end: Point2D): number {
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
+    if (dx === 0 && dy === 0) {
+        const px = point[0] - start[0];
+        const py = point[1] - start[1];
+        return px * px + py * py;
+    }
+    const t = clampNumber(((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (dx * dx + dy * dy), 0, 1);
+    const x = start[0] + t * dx;
+    const y = start[1] + t * dy;
+    const px = point[0] - x;
+    const py = point[1] - y;
+    return px * px + py * py;
+}
+
+function reducePointCount(points: Point2D[], maxPoints: number): Point2D[] {
+    if (points.length <= maxPoints) return points;
+    const step = Math.ceil(points.length / maxPoints);
+    return points.filter((_, index) => index % step === 0);
+}
+
+function pixelToDocumentPoint(x: number, y: number, width: number, height: number, bounds: [number, number, number, number]): Point2D {
+    const left = bounds[0];
+    const top = bounds[1];
+    const right = bounds[2];
+    const bottom = bounds[3];
+    return [
+        left + (x / width) * (right - left),
+        top - (y / height) * (top - bottom),
+    ];
+}
 
 function splitPaletteEntries(input: string): string[] {
     const entries: string[] = [];
