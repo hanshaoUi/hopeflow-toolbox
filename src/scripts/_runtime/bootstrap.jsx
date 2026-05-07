@@ -13,7 +13,7 @@ if (typeof $.hopeflow === 'undefined') {
 }
 
 // Version marker
-$.hopeflow.version = '3.0.0';
+$.hopeflow.version = '3.1.404';
 $.hopeflow.ready = false;
 
 // Internal state
@@ -36,7 +36,7 @@ $.hopeflow.auth = {
 // Execution wrapper - used by the bridge to track script runs
 $.hopeflow.execute = function (scriptId, scriptFn) {
     if (!$.hopeflow.ready) {
-        return JSON.stringify({ success: false, error: 'Runtime not ready' });
+        return JSON.stringify({ success: false, error: '运行时尚未就绪' });
     }
 
     $.hopeflow._executionCount++;

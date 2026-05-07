@@ -15,6 +15,11 @@ if not exist "%INSTALLER%" (
     exit /b 1
 )
 
+echo Closing Python processes before installation...
+taskkill /F /IM python.exe >nul 2>&1
+taskkill /F /IM pythonw.exe >nul 2>&1
+taskkill /F /IM py.exe >nul 2>&1
+
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File "%INSTALLER%" -Gui
 exit /b %ERRORLEVEL%
 

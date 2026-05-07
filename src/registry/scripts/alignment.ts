@@ -23,6 +23,12 @@ export const alignmentScripts: ScriptMetadata[] = [
           { value: 'v-center', label: '垂直居中' },
         ],
       },
+      {
+        name: 'duplicate',
+        type: 'boolean',
+        label: '复制后对齐',
+        default: false,
+      },
     ],
   },
   {
@@ -68,6 +74,12 @@ export const alignmentScripts: ScriptMetadata[] = [
           { value: 'vertical', label: '垂直镜像（上下）' },
         ],
       },
+      {
+        name: 'duplicate',
+        type: 'boolean',
+        label: '复制后镜像',
+        default: false,
+      },
     ],
   },
   {
@@ -107,6 +119,14 @@ export const alignmentScripts: ScriptMetadata[] = [
         type: 'boolean',
         label: '复制后旋转',
         default: false,
+      },
+      {
+        name: 'copyCount',
+        type: 'number',
+        label: '复制份数',
+        default: 1,
+        min: 1,
+        step: 1,
       },
       {
         name: 'rotatePatterns',

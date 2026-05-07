@@ -7,7 +7,7 @@
     if (!$.hopeflow) return;
 
     if (!app.documents.length) {
-        return $.hopeflow.utils.returnError('No active document');
+        return $.hopeflow.utils.returnError('没有活动文档');
     }
 
     var doc = app.activeDocument;
@@ -18,7 +18,7 @@
 
     var sel = doc.selection;
     if (!sel || sel.length === 0) {
-        return $.hopeflow.utils.returnError('No objects to process');
+        return $.hopeflow.utils.returnError('没有可处理的对象');
     }
 
     var textCount = 0;

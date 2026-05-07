@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -36,6 +36,23 @@ type LibrarySource = 'local' | 'photos' | 'cutouts' | 'illustrations';
 
 // Storyset illustration styles
 const STORYSET_STYLES = ['rafiki', 'bro', 'amico', 'pana', 'cuate'] as const;
+const ONLINE_CACHE_TTL_MS = 30 * 60 * 1000;
+const PIXABAY_RATE_LIMIT_COOLDOWN_MS = 60 * 1000;
+
+async function readApiError(resp: Response): Promise<string> {
+    try {
+        const text = await resp.text();
+        if (!text) return '';
+        try {
+            const data = JSON.parse(text);
+            return String(data.message || data.error || data.errors || text).trim();
+        } catch {
+            return text.trim();
+        }
+    } catch {
+        return '';
+    }
+}
 
 // Default categories for online sources
 const ONLINE_CATEGORIES: Record<string, { label: string; query: string }[]> = {
@@ -102,6 +119,9 @@ export const MaterialLibrary: React.FC = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [containerSize, setContainerSize] = useState({ width: 300, height: 500 });
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const onlineCacheRef = useRef<Record<string, { expiresAt: number; files: MaterialFile[] }>>({});
+    const pixabayRateLimitUntilRef = useRef(0);
+    const latestOnlineSearchRef = useRef(0);
 
     // API Keys - Read from settings
     const PEXELS_KEY = settings.apiKeys.pexels;
@@ -125,6 +145,25 @@ export const MaterialLibrary: React.FC = () => {
     const searchOnline = useCallback(async (query: string, mode: LibrarySource) => {
         if (!query || mode === 'local') return;
 
+        const normalizedQuery = query.trim();
+        if (!normalizedQuery) return;
+
+        const cacheKey = `${mode}:${normalizedQuery.toLowerCase()}`;
+        const cached = onlineCacheRef.current[cacheKey];
+        if (cached && cached.expiresAt > Date.now()) {
+            setOnlineFiles(cached.files);
+            setError(null);
+            return;
+        }
+
+        if (mode === 'cutouts' && pixabayRateLimitUntilRef.current > Date.now()) {
+            const waitSeconds = Math.max(1, Math.ceil((pixabayRateLimitUntilRef.current - Date.now()) / 1000));
+            setError(`Pixabay 请求过于频繁，请等待 ${waitSeconds} 秒后再试`);
+            return;
+        }
+
+        const requestId = latestOnlineSearchRef.current + 1;
+        latestOnlineSearchRef.current = requestId;
         setIsSearchingOnline(true);
         setError(null);
         let results: MaterialFile[] = [];
@@ -136,10 +175,13 @@ export const MaterialLibrary: React.FC = () => {
                     setIsSearchingOnline(false);
                     return;
                 }
-                const resp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=40`, {
+                const resp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(normalizedQuery)}&per_page=40`, {
                     headers: { 'Authorization': PEXELS_KEY }
                 });
-                if (!resp.ok) throw new Error(`Pexels API 错误 (${resp.status})`);
+                if (!resp.ok) {
+                    const details = await readApiError(resp);
+                    throw new Error(`Pexels API 错误 (${resp.status})${details ? `，${details}` : '，请检查 API Key 或接口状态'}`);
+                }
                 const data = await resp.json();
                 results = (data.photos || []).map((p: any) => ({
                     id: p.id,
@@ -159,9 +201,15 @@ export const MaterialLibrary: React.FC = () => {
                     return;
                 }
                 // Pixabay with transparency filter for "Cutouts"
-                const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(query)}&image_type=illustration&colors=transparent&per_page=40`;
+                const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(normalizedQuery)}&image_type=illustration&colors=transparent&per_page=40`;
                 const resp = await fetch(url);
-                if (!resp.ok) throw new Error(`Pixabay API 错误 (${resp.status})`);
+                if (!resp.ok) {
+                    const details = await readApiError(resp);
+                    if (/rate limit/i.test(details)) {
+                        pixabayRateLimitUntilRef.current = Date.now() + PIXABAY_RATE_LIMIT_COOLDOWN_MS;
+                    }
+                    throw new Error(`Pixabay API 错误 (${resp.status})${details ? `，${details}` : '，请检查 API Key、请求配额或接口状态'}`);
+                }
                 const data = await resp.json();
                 results = (data.hits || []).map((h: any) => ({
                     id: h.id,
@@ -179,16 +227,19 @@ export const MaterialLibrary: React.FC = () => {
                 let apiUrl = 'https://stories.freepiklabs.com/api/vectors?page=1';
 
                 // Handle style filter (e.g., "style:rafiki") or fetch all
-                if (query.startsWith('style:')) {
-                    const style = query.replace('style:', '');
+                if (normalizedQuery.startsWith('style:')) {
+                    const style = normalizedQuery.replace('style:', '');
                     apiUrl = `https://stories.freepiklabs.com/api/vectors?page=1&style=${style}`;
-                } else if (query !== 'all') {
+                } else if (normalizedQuery !== 'all') {
                     // For now, just fetch page 1; Storyset doesn't have text search
                     apiUrl = 'https://stories.freepiklabs.com/api/vectors?page=1';
                 }
 
                 const resp = await fetch(apiUrl);
-                if (!resp.ok) throw new Error(`Storyset API 错误 (${resp.status})`);
+                if (!resp.ok) {
+                    const details = await readApiError(resp);
+                    throw new Error(`Storyset API 错误 (${resp.status})${details ? `，${details}` : '，请稍后重试'}`);
+                }
                 const data = await resp.json();
                 results = (data.data || []).map((item: any) => ({
                     id: item.id,
@@ -202,12 +253,22 @@ export const MaterialLibrary: React.FC = () => {
                     provider: 'storyset' as any
                 }));
             }
-            setOnlineFiles(results);
+            if (latestOnlineSearchRef.current === requestId) {
+                onlineCacheRef.current[cacheKey] = {
+                    expiresAt: Date.now() + ONLINE_CACHE_TTL_MS,
+                    files: results,
+                };
+                setOnlineFiles(results);
+            }
         } catch (err) {
             console.error('Online search error:', err);
-            setError('网络搜索失败，请检查网络连接');
+            if (latestOnlineSearchRef.current === requestId) {
+                setError(err instanceof Error && err.message ? err.message : '网络搜索失败，请检查网络连接');
+            }
         } finally {
-            setIsSearchingOnline(false);
+            if (latestOnlineSearchRef.current === requestId) {
+                setIsSearchingOnline(false);
+            }
         }
     }, [PEXELS_KEY, PIXABAY_KEY]);
 
@@ -624,9 +685,22 @@ export const MaterialLibrary: React.FC = () => {
             </div>
 
             <div ref={containerRef} onScroll={(e) => setTop(e.currentTarget.scrollTop)} style={{ flex: 1, overflowY: 'auto', padding: '12px', position: 'relative' }}>
-                {error && <div className="alert alert-error" style={{ marginBottom: '12px', fontSize: '12px' }}>{error}</div>}
+                {error && (
+                    <div
+                        className="alert alert-error"
+                        style={{
+                            marginBottom: '12px',
+                            fontSize: '12px',
+                            color: '#ff9aa4',
+                            background: 'rgba(255, 95, 109, 0.10)',
+                            borderColor: 'rgba(255, 95, 109, 0.78)',
+                        }}
+                    >
+                        {error}
+                    </div>
+                )}
                 {source !== 'local' && searchQuery && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '8px 12px', background: 'var(--color-bg-secondary)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '8px 12px', background: 'var(--color-bg-control)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
                         <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
                             <span style={{ opacity: 0.6 }}>搜索：</span>
                             <span style={{ color: 'var(--color-accent)', fontWeight: 500 }}>{searchQuery}</span>

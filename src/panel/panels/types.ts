@@ -16,8 +16,8 @@ export interface ScriptPanelProps {
 export const chipStyle = (active: boolean): React.CSSProperties => ({
     display: 'inline-flex', alignItems: 'center',
     padding: '3px 10px', borderRadius: 'var(--radius-sm)',
-    background: active ? 'var(--color-accent)' : 'var(--color-bg-tertiary)',
+    background: active ? 'var(--color-accent-soft)' : 'var(--color-bg-control)',
     border: '1px solid ' + (active ? 'var(--color-accent)' : 'var(--color-border)'),
-    color: active ? '#fff' : 'var(--color-text-secondary)',
+    color: active ? '#dceeff' : 'var(--color-text-secondary)',
     cursor: 'pointer', fontSize: '11px', transition: 'all 0.15s ease', userSelect: 'none',
 });

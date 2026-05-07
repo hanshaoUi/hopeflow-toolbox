@@ -6,7 +6,7 @@
     if (!$.hopeflow) return;
 
     if (app.documents.length === 0) {
-        return $.hopeflow.utils.returnError('No document open');
+        return $.hopeflow.utils.returnError('没有打开的文档');
     }
 
     var doc = app.activeDocument;
@@ -251,7 +251,7 @@
     blob.selected = true;
 
     return $.hopeflow.utils.returnResult({
-        message: 'Blob shape created',
+        message: '随机形状已创建',
         seed: state,
         edges: edges
     });

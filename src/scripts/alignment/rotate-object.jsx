@@ -12,6 +12,11 @@
         return isNaN(num) ? fallback : num;
     }
 
+    function toPositiveInteger(value, fallback) {
+        var num = parseInt(value, 10);
+        return isNaN(num) || num < 1 ? fallback : num;
+    }
+
     function getAnchorPoint(anchor) {
         switch (String(anchor || '5')) {
             case '1': return Transformation.TOPLEFT;
@@ -47,6 +52,7 @@
         var rotateGradients = args.rotateGradients !== false;
         var rotateStrokePatterns = args.rotateStrokePatterns !== false;
         var duplicate = args.duplicate === true;
+        var copyCount = toPositiveInteger(args.copyCount, 1);
         var anchor = getAnchorPoint(args.anchor);
         var processed = 0;
 
@@ -54,25 +60,31 @@
 
         for (var i = 0; i < selection.length; i++) {
             var item = selection[i];
-            var target = duplicate ? item.duplicate() : item;
+            var copies = duplicate ? copyCount : 1;
 
-            target.rotate(
-                angle,
-                true,
-                rotatePatterns,
-                rotateGradients,
-                rotateStrokePatterns,
-                anchor
-            );
+            for (var copyIndex = 1; copyIndex <= copies; copyIndex++) {
+                var target = duplicate ? item.duplicate() : item;
+                var targetAngle = duplicate ? angle * copyIndex : angle;
 
-            target.selected = true;
-            processed++;
+                target.rotate(
+                    targetAngle,
+                    true,
+                    rotatePatterns,
+                    rotateGradients,
+                    rotateStrokePatterns,
+                    anchor
+                );
+
+                target.selected = true;
+                processed++;
+            }
         }
 
         return $.hopeflow.utils.returnResult({
             rotated: processed,
             angle: angle,
             duplicate: duplicate,
+            copyCount: duplicate ? copyCount : 0,
             anchor: String(args.anchor || '5'),
             rotatePatterns: rotatePatterns,
             rotateGradients: rotateGradients,

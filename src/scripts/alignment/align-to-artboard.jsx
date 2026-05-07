@@ -1,7 +1,7 @@
 /**
  * 对齐到画板 - Align Selection to Artboard
  * Aligns selected objects to artboard edges or center.
- * Args: { alignment: 'center'|'left'|'right'|'top'|'bottom'|'h-center'|'v-center'|'top-left'|... }
+ * Args: { alignment: 'center'|'left'|'right'|'top'|'bottom'|'h-center'|'v-center'|'top-left'|..., duplicate?: boolean }
  */
 (function () {
     if (!$.hopeflow) return;
@@ -11,10 +11,11 @@
 
     var args = $.hopeflow.utils.getArgs();
     var alignment = args.alignment || 'center';
+    var duplicate = args.duplicate === true;
     var ab = $.hopeflow.utils.getActiveArtboardBounds();
 
     for (var i = 0; i < sel.length; i++) {
-        var item = sel[i];
+        var item = duplicate ? sel[i].duplicate() : sel[i];
         var bounds = $.hopeflow.utils.getBounds([item]);
 
         switch (alignment) {
@@ -59,5 +60,5 @@
         }
     }
 
-    return $.hopeflow.utils.returnResult({ aligned: sel.length, alignment: alignment });
+    return $.hopeflow.utils.returnResult({ aligned: sel.length, alignment: alignment, duplicate: duplicate });
 })();

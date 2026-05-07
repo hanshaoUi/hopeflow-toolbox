@@ -1,7 +1,7 @@
 /**
  * 镜像 - Mirror Object
  * Mirrors selected objects horizontally or vertically around their collective center.
- * Args: { direction: 'horizontal'|'vertical' }
+ * Args: { direction: 'horizontal'|'vertical', duplicate?: boolean }
  */
 (function () {
     if (!$.hopeflow) return;
@@ -11,6 +11,7 @@
 
     var args = $.hopeflow.utils.getArgs();
     var direction = args.direction || 'horizontal';
+    var duplicate = args.duplicate === true;
 
     // Get collective bounds center
     var bounds = $.hopeflow.utils.getBounds(sel);
@@ -24,7 +25,7 @@
     if (direction === 'horizontal') {
         // Reflect horizontally: flip across vertical axis through center
         for (var i = 0; i < sel.length; i++) {
-            var item = sel[i];
+            var item = duplicate ? sel[i].duplicate() : sel[i];
             var itemBounds = $.hopeflow.utils.getBounds([item]);
             var itemCx = itemBounds.left + itemBounds.width / 2;
 
@@ -40,7 +41,7 @@
     } else {
         // Reflect vertically: flip across horizontal axis through center
         for (var i = 0; i < sel.length; i++) {
-            var item = sel[i];
+            var item = duplicate ? sel[i].duplicate() : sel[i];
             var itemBounds = $.hopeflow.utils.getBounds([item]);
             var itemCy = itemBounds.top - itemBounds.height / 2;
 
@@ -53,5 +54,5 @@
         }
     }
 
-    return $.hopeflow.utils.returnResult({ mirrored: sel.length, direction: direction });
+    return $.hopeflow.utils.returnResult({ mirrored: sel.length, direction: direction, duplicate: duplicate });
 })();

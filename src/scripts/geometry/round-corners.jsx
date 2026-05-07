@@ -45,5 +45,5 @@
         // Better: I'll implement `random-scatter` properly which IS doable (translate).
     }
 
-    return $.hopeflow.utils.returnResult({ message: "Script active but corner rounding requires complex geometry lib" });
+    return $.hopeflow.utils.returnResult({ message: "脚本已激活，但圆角化需要复杂的几何库支持" });
 })();

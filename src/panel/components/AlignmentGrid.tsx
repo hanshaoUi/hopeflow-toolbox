@@ -141,9 +141,9 @@ export const AlignmentGrid: React.FC<AlignmentGridProps> = ({ onAlign, disabled 
                             gap: '4px',
                             minWidth: 'unset',
                             height: 'auto',
-                            background: isActive ? 'var(--color-accent)' : 'var(--color-bg-tertiary)',
+                            background: isActive ? 'var(--color-accent-soft)' : 'var(--color-bg-control)',
                             border: isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-                            color: isActive ? '#fff' : 'var(--color-text-secondary)',
+                            color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                             borderRadius: 'var(--radius-md)',
                             transition: 'all 0.15s ease',
                         }}

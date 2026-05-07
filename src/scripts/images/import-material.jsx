@@ -5,7 +5,7 @@
      */
     (function () {
         if (!$.hopeflow) {
-            alert("HopeFlow runtime not initialized.");
+            alert("HopeFlow 运行时未初始化。");
             return;
         }
 
@@ -13,12 +13,12 @@
         var filePath = args.path;
 
         if (!filePath) {
-            return $.hopeflow.utils.returnError("No file path provided.");
+            return $.hopeflow.utils.returnError("未提供文件路径。");
         }
 
         var fileRef = new File(filePath);
         if (!fileRef.exists) {
-            return $.hopeflow.utils.returnError("File does not exist: " + filePath);
+            return $.hopeflow.utils.returnError("文件不存在: " + filePath);
         }
 
         if (app.documents.length === 0) {
@@ -57,11 +57,11 @@
                 var placed = doc.placedItems.add();
                 placed.file = fileRef;
             } else {
-                return $.hopeflow.utils.returnError("Unsupported file type: " + ext);
+                return $.hopeflow.utils.returnError("不支持的文件类型: " + ext);
             }
 
             return $.hopeflow.utils.returnResult("success");
         } catch (e) {
-            return $.hopeflow.utils.returnError("Import failed: " + e.message);
+            return $.hopeflow.utils.returnError("导入失败: " + e.message);
         }
     })();

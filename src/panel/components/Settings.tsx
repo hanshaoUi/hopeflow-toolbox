@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import { useSettings } from '../hooks/useSettings';
+import { APP_VERSION } from '../../version';
 
 const openExternal = (url: string) => {
   if ((window as any).__adobe_cep__ && typeof (window as any).CSInterface !== 'undefined') {
@@ -114,7 +115,7 @@ export const Settings: React.FC = () => {
       {tab === 'libraries' && renderLibraries()}
       {tab === 'online' && renderOnline()}
       {tab === 'ai' && renderAI()}
-      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--color-text-tertiary)', paddingBottom: 4 }}>HopeFlow v3.1.404 · Illustrator Panel Settings</div>
+      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--color-text-tertiary)', paddingBottom: 4 }}>HopeFlow v{APP_VERSION} · Illustrator Panel Settings</div>
     </div>
   );
 };

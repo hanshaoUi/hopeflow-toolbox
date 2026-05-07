@@ -191,12 +191,12 @@ else {
 
         var object = items[0];
         if (object.typename !== 'PathItem' && object.typename !== 'CompoundPathItem') {
-            return alert('The filling object must be PathItem or CompoundPathItem! [' + object.typename + ']');
+            return alert('填充对象必须是路径或复合路径类型！当前类型: [' + object.typename + ']');
         }
         items.splice(0, 1);
         var placeObject = (items.length === 1 ? (items[0].typename === 'GroupItem' ? items[0].pageItems : [items[0]]) : (!items.length ? [] : items));
         if (!placeObject.length) {
-            return alert('No items to fill!');
+            return alert('没有可填充的对象！');
         }
         var placeObjectResizeValue = (isNaN(parseFloat(resizeValue.text)) ? parseFloat(resizeValue.text) : 70),
             innerpaths = [],
@@ -233,7 +233,7 @@ else {
             }
         }
         else { outerPath = flattenPath(object); }
-        if (outerPath == null) { alert("Got a bad path. What's going on?"); }
+        if (outerPath == null) { alert("路径数据异常，无法继续操作。"); }
         else {
             minx = object.geometricBounds[0];
             miny = object.geometricBounds[1];
@@ -347,7 +347,7 @@ else {
 
         if (removeTopElement.value) object.remove();
     }
-    function drawLine(a, b) { var p = app.activeDocument.pathItems.add(); try { p.setEntirePath([a, b]); p.strokeWidth = 0.1; } catch (e) { alert("Bad line:\ra=" + a + "\rb=" + b); } return p; }
+    function drawLine(a, b) { var p = app.activeDocument.pathItems.add(); try { p.setEntirePath([a, b]); p.strokeWidth = 0.1; } catch (e) { alert("线段绘制失败:\ra=" + a + "\rb=" + b); } return p; }
     function distanceFromPointToPoint(A, B) { return Math.sqrt(((A[0] - B[0]) * (A[0] - B[0])) + ((A[1] - B[1]) * (A[1] - B[1]))); }
     function flattenPath(obj) { var newpath = new Array(), curveList, pt, nextpt, isFlattened = false; if (!obj.hasOwnProperty("pathPoints")) { return null; } for (pt = 0; pt < obj.pathPoints.length; pt++) { nextpt = pt + 1; if (nextpt == obj.pathPoints.length) { nextpt = 0; } if (obj.pathPoints[pt].anchor[0] == obj.pathPoints[pt].rightDirection[0] && obj.pathPoints[pt].anchor[1] == obj.pathPoints[pt].rightDirection[1] && obj.pathPoints[nextpt].anchor[0] == obj.pathPoints[nextpt].leftDirection[0] && obj.pathPoints[nextpt].anchor[1] == obj.pathPoints[nextpt].leftDirection[1]) { newpath.push(obj.pathPoints[pt].anchor); } else { isFlattened = true; curveList = curve4(obj.pathPoints[pt].anchor[0], obj.pathPoints[pt].anchor[1], obj.pathPoints[pt].rightDirection[0], obj.pathPoints[pt].rightDirection[1], obj.pathPoints[nextpt].leftDirection[0], obj.pathPoints[nextpt].leftDirection[1], obj.pathPoints[nextpt].anchor[0], obj.pathPoints[nextpt].anchor[1], 4); newpath = newpath.concat(curveList); } } return newpath; }
     function pointInsidePoly(pt, poly) { for (var c = false, i = -1, l = poly.length, j = l - 1; ++i < l; j = i) { ((poly[i][1] <= pt[1] && pt[1] < poly[j][1]) || (poly[j][1] <= pt[1] && pt[1] < poly[i][1])) && (pt[0] < (poly[j][0] - poly[i][0]) * (pt[1] - poly[i][1]) / (poly[j][1] - poly[i][1]) + poly[i][0]) && (c = !c); } return c; }

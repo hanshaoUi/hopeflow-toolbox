@@ -1,9 +1,11 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const rootDir = path.resolve(__dirname, '..');
 const srcDir = path.resolve(rootDir, 'src');
+const packageJson = require(path.resolve(rootDir, 'package.json'));
 
 module.exports = (_env, argv) => {
   const isProd = argv.mode === 'production';
@@ -41,6 +43,10 @@ module.exports = (_env, argv) => {
       ],
     },
     plugins: [
+      new webpack.DefinePlugin({
+        __HOPEFLOW_DEV_MODE__: JSON.stringify(!isProd),
+        __HOPEFLOW_VERSION__: JSON.stringify(packageJson.version),
+      }),
       new HtmlWebpackPlugin({
         template: path.resolve(srcDir, 'panel', 'index.html'),
         filename: 'index.html',
@@ -51,6 +57,10 @@ module.exports = (_env, argv) => {
           {
             from: path.resolve(srcDir, 'panel', 'CSInterface.js'),
             to: 'CSInterface.js',
+          },
+          {
+            from: path.resolve(srcDir, 'panel', 'retrace'),
+            to: 'retrace',
           },
         ],
       }),

@@ -6,7 +6,7 @@
  */
 
 if (!$.hopeflow) {
-    return JSON.stringify({ success: false, error: 'runtime not loaded' });
+    return JSON.stringify({ success: false, error: '运行时未加载' });
 }
 
 var args = $.hopeflow.utils.getArgs();

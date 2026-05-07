@@ -1,27 +1,30 @@
 /* HopeFlow Toolbox - Adobe Spectrum Dark Theme */
 
 :root {
-  /* Colors - Adobe Spectrum inspired */
-  --color-bg-primary: #535353;
-  --color-bg-secondary: #454545;
-  --color-bg-tertiary: #333333;
-  --color-bg-hover: #606060;
-  --color-bg-active: #6a6a6a;
+  /* Colors - quiet Adobe-style dark surface */
+  --color-bg-primary: #3f4142;
+  --color-bg-secondary: #363839;
+  --color-bg-tertiary: #2f3132;
+  --color-bg-control: #343637;
+  --color-bg-hover: #494c4e;
+  --color-bg-active: #50555a;
 
-  --color-border: #404040;
-  --color-border-hover: #505050;
+  --color-border: #2a2c2e;
+  --color-border-hover: #5b6064;
 
-  --color-text-primary: #e8e8e8;
-  --color-text-secondary: #b8b8b8;
-  --color-text-tertiary: #909090;
+  --color-text-primary: #f1f2f3;
+  --color-text-secondary: #c6c9cc;
+  --color-text-tertiary: #8e9499;
 
-  --color-accent: #2680eb;
-  --color-accent-hover: #1473e6;
-  --color-accent-active: #0d66d0;
+  --color-accent: #4b9cff;
+  --color-accent-hover: #3d8fee;
+  --color-accent-active: #2f7dd5;
+  --color-accent-soft: rgba(75, 156, 255, 0.16);
+  --color-accent-muted: rgba(75, 156, 255, 0.32);
 
-  --color-success: #2d9d78;
-  --color-warning: #e68619;
-  --color-error: #e34850;
+  --color-success: #39b58a;
+  --color-warning: #d9942d;
+  --color-error: #ff5f6d;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -46,9 +49,9 @@
   --radius-lg: 6px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 8px 18px rgba(0, 0, 0, 0.38);
 
   /* Icon Sizes */
   --icon-size-lg: 18px;
@@ -145,7 +148,7 @@ h3 {
   font-weight: 500;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-control);
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -155,6 +158,7 @@ h3 {
 .btn:hover {
   background: var(--color-bg-hover);
   border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
 }
 
 .btn:active {
@@ -167,13 +171,14 @@ h3 {
 }
 
 .btn-primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-active) 100%);
+  border-color: var(--color-accent-hover);
   color: white;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .btn-primary:hover {
-  background: var(--color-accent-hover);
+  background: linear-gradient(180deg, var(--color-accent-hover) 0%, var(--color-accent-active) 100%);
   border-color: var(--color-accent-hover);
 }
 
@@ -199,7 +204,7 @@ h3 {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-md);
   font-family: var(--font-family);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-control);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -208,12 +213,13 @@ h3 {
 
 .input:hover {
   border-color: var(--color-border-hover);
+  background: #393c3e;
 }
 
 .input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 0 3px var(--color-accent-soft);
 }
 
 .input::placeholder {
@@ -240,7 +246,7 @@ h3 {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
   font-family: var(--font-family);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-control);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
@@ -262,7 +268,7 @@ h3 {
 .select:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 0 3px var(--color-accent-soft);
 }
 
 /* Cards */
@@ -289,27 +295,27 @@ h3 {
 }
 
 .alert-error {
-  background: rgba(227, 72, 80, 0.1);
+  background: rgba(255, 95, 109, 0.1);
   border-color: var(--color-error);
-  color: #ff6b6b;
+  color: #ff8f99;
 }
 
 .alert-success {
-  background: rgba(45, 157, 120, 0.1);
+  background: rgba(57, 181, 138, 0.1);
   border-color: var(--color-success);
-  color: #4ade80;
+  color: #78d8b8;
 }
 
 .alert-warning {
-  background: rgba(230, 134, 25, 0.1);
+  background: rgba(217, 148, 45, 0.12);
   border-color: var(--color-warning);
-  color: #fbbf24;
+  color: #f0bf68;
 }
 
 .alert-info {
-  background: rgba(38, 128, 235, 0.1);
+  background: var(--color-accent-soft);
   border-color: var(--color-accent);
-  color: #60a5fa;
+  color: #a8d1ff;
 }
 
 /* Loading Spinner */

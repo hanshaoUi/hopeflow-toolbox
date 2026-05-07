@@ -11,18 +11,18 @@
     if (!$.hopeflow) return;
 
     if (!app.documents.length) {
-        return $.hopeflow.utils.returnError('Please open an Illustrator document first.');
+        return $.hopeflow.utils.returnError('请先打开一个 Illustrator 文档。');
     }
 
     var doc = app.activeDocument;
     var args = $.hopeflow.utils.getArgs();
 
     if (!doc.artboards || doc.artboards.length === 0) {
-        return $.hopeflow.utils.returnError('The current document has no artboards.');
+        return $.hopeflow.utils.returnError('当前文档没有画板。');
     }
 
     if (!doc.saved || !doc.fullName) {
-        return $.hopeflow.utils.returnError('Please save the current document before exporting artboards as AI files.');
+        return $.hopeflow.utils.returnError('导出画板为 AI 文件前，请先保存当前文档。');
     }
 
     function getBaseName(name) {
@@ -46,7 +46,7 @@
 
     function ensureFolder(folder) {
         if (!folder.exists && !folder.create()) {
-            throw new Error('Unable to create export folder: ' + folder.fsName);
+            throw new Error('无法创建导出文件夹: ' + folder.fsName);
         }
         return folder;
     }
@@ -58,7 +58,7 @@
         if (location === 'desktop') {
             folder = Folder.desktop;
         } else if (location === 'custom') {
-            folder = Folder.selectDialog('Select AI export folder');
+            folder = Folder.selectDialog('选择 AI 导出文件夹');
             if (!folder) return null;
         } else {
             folder = doc.path;
@@ -101,7 +101,7 @@
     }
 
     if (!outputFolder) {
-        return $.hopeflow.utils.returnError('User canceled.');
+        return $.hopeflow.utils.returnError('用户已取消。');
     }
 
     var originalFile = new File(doc.fullName.fsName);
@@ -141,7 +141,7 @@
             }
         }
     } catch (e) {
-        return $.hopeflow.utils.returnError('Export AI failed: ' + (e.message || String(e)));
+        return $.hopeflow.utils.returnError('导出 AI 失败: ' + (e.message || String(e)));
     } finally {
         app.userInteractionLevel = previousInteractionLevel;
         try {
@@ -154,8 +154,8 @@
     }
 
     if (exported.length === 0 && failed.length > 0) {
-        var firstError = failed[0].error || 'Unknown error';
-        return $.hopeflow.utils.returnError('No AI files were exported. First failure: ' + firstError);
+        var firstError = failed[0].error || '未知错误';
+        return $.hopeflow.utils.returnError('未导出任何 AI 文件。首个失败原因: ' + firstError);
     }
 
     return $.hopeflow.utils.returnResult({

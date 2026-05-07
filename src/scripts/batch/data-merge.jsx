@@ -8,7 +8,7 @@
 
 if (!$.hopeflow) {
     // Can't use returnError here because $.hopeflow is not loaded
-    return JSON.stringify({ success: false, error: 'runtime not loaded' });
+    return JSON.stringify({ success: false, error: '运行时未加载' });
 }
 
 var args = $.hopeflow.utils.getArgs();
@@ -321,7 +321,7 @@ function exportCurrentRow(doc, outputFolder, fileName, exportSettings) {
         return jpgFile.fsName;
     }
 
-    throw new Error('Unsupported export format: ' + format);
+    throw new Error('不支持的导出格式: ' + format);
 }
 
 function getActiveArtboardRect(doc) {
@@ -801,7 +801,7 @@ if (mode === 'exportPythonTemplate') {
     var templateNameP = args.templateName || 'data-merge-template';
 
     if (!mappingsP || !exportSettingsP || !exportSettingsP.outputFolder) {
-        return $.hopeflow.utils.returnError('Missing Python template parameters');
+        return $.hopeflow.utils.returnError('缺少 Python 模板参数');
     }
 
     var outputFolderP = new Folder(exportSettingsP.outputFolder);
@@ -916,7 +916,7 @@ if (mode === 'exportPythonTemplate') {
             }
         });
     } catch (templateErrP) {
-        return $.hopeflow.utils.returnError('Python template export failed: ' + (templateErrP.message || String(templateErrP)));
+        return $.hopeflow.utils.returnError('Python 模板导出失败: ' + (templateErrP.message || String(templateErrP)));
     }
 }
 
@@ -935,7 +935,7 @@ if (mode === 'exportMergedPdf') {
     var textStyleRulesM = normalizeTextStyleRules(args.textStyleRules);
 
     if (!mappingsM || !csvDataM || !headersM || !exportSettingsM) {
-        return $.hopeflow.utils.returnError('Missing merged PDF export parameters');
+        return $.hopeflow.utils.returnError('缺少合并 PDF 导出参数');
     }
 
     var outputFolderM = new Folder(exportSettingsM.outputFolder);
@@ -945,7 +945,7 @@ if (mode === 'exportMergedPdf') {
     var pageWidthM = sourceRectM[2] - sourceRectM[0];
     var pageHeightM = sourceRectM[1] - sourceRectM[3];
     if (!(pageWidthM > 0) || !(pageHeightM > 0)) {
-        return $.hopeflow.utils.returnError('Invalid active artboard size');
+        return $.hopeflow.utils.returnError('当前画板尺寸无效');
     }
 
     for (var mm = 0; mm < mappingsM.length; mm++) {
@@ -1004,7 +1004,7 @@ if (mode === 'exportMergedPdf') {
         try {
             if (tempDocM) tempDocM.close(SaveOptions.DONOTSAVECHANGES);
         } catch (closeErrM) {}
-        return $.hopeflow.utils.returnError('Merged PDF export failed: ' + (mergedErrM.message || String(mergedErrM)));
+        return $.hopeflow.utils.returnError('合并 PDF 导出失败: ' + (mergedErrM.message || String(mergedErrM)));
     }
 }
 
@@ -1021,7 +1021,7 @@ if (mode === 'exportBatch') {
     var textStyleRulesB = normalizeTextStyleRules(args.textStyleRules);
 
     if (!mappingsB || !csvDataB || !headersB || !exportSettingsB) {
-        return $.hopeflow.utils.returnError('Missing batch export parameters');
+        return $.hopeflow.utils.returnError('缺少批量导出参数');
     }
 
     var outputFolderB = new Folder(exportSettingsB.outputFolder);
