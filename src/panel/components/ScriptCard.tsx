@@ -452,6 +452,7 @@ const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {
 
 // Scripts with specialized UIs
 const SPECIAL_UI_SCRIPTS = new Set([
+    'extract-image-contour',
     'image-vectorize',
     'align-to-artboard',
     'distribute-spacing',
@@ -523,6 +524,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const [vectorizeStats, setVectorizeStats] = useState<{ regions: number; pixels: number; size: string } | null>(null);
     const [vectorizeLoading, setVectorizeLoading] = useState(false);
     const [vectorizeCompare, setVectorizeCompare] = useState(50);
+    const [imageContourPreviews, setImageContourPreviews] = useState<ImageContourPreview[]>([]);
+    const [imageContourExport, setImageContourExport] = useState<ImageContourExportData | null>(null);
+    const [imageContourSelectedKey, setImageContourSelectedKey] = useState<string | null>(null);
     const retraceFrameRef = useRef<HTMLIFrameElement | null>(null);
     const vectorizeWorkerRef = useRef<Worker | null>(null);
     const vectorizeRequestRef = useRef(0);
@@ -1421,6 +1425,77 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
     };
 
+    const handleGenerateImageContour = async () => {
+        setError(null);
+        setInlineResultMessage(null);
+        setImageContourPreviews([]);
+        setImageContourExport(null);
+        setImageContourSelectedKey(null);
+        setIsAlphaExecuting(true);
+        try {
+            const bridge = await getBridge();
+            const exportResult = await bridge.executeScript({
+                scriptId: 'extract-image-contour',
+                scriptPath: './src/scripts/path/extract-image-contour.jsx',
+                args: { mode: 'exportSelection' },
+            });
+            if (!exportResult.success) {
+                setError(exportResult.error || '图片读取失败');
+                return;
+            }
+            const exportData = (exportResult.data || {}) as ImageContourExportData;
+            if (!exportData.filePath || !Array.isArray(exportData.bounds)) {
+                setError('图片读取结果无效');
+                return;
+            }
+            const previews = decodeImageContourPreviews(exportData.filePath);
+            setImageContourExport(exportData);
+            setImageContourPreviews(previews);
+        } catch (err: any) {
+            setError(err?.message || '图片外轮廓生成失败');
+        } finally {
+            setIsAlphaExecuting(false);
+        }
+    };
+
+    const handleApplyImageContour = async (preview: ImageContourPreview) => {
+        if (!preview.mask || !imageContourExport?.bounds) return;
+        setError(null);
+        setImageContourSelectedKey(preview.key);
+        setIsAlphaExecuting(true);
+        try {
+            let contour = traceLargestContour(preview.mask, preview.width, preview.height);
+            if (contour.length < 3) contour = boundingBoxContour(preview.mask, preview.width, preview.height);
+            if (contour.length < 3) {
+                setError('这个模式没有提取到有效轮廓');
+                return;
+            }
+            const simplify = clampNumber(Number(params.simplify ?? 2), 0, 20);
+            const simplified = simplify > 0 ? simplifyClosedPolyline(contour, simplify) : contour;
+            const capped = reducePointCount(simplified, 1800);
+            const points = capped.map(([x, y]) => pixelToDocumentPoint(x, y, preview.width, preview.height, imageContourExport.bounds));
+            const bridge = await getBridge();
+            const result = await bridge.executeScript({
+                scriptId: 'extract-image-contour',
+                scriptPath: './src/scripts/path/extract-image-contour.jsx',
+                args: {
+                    ...params,
+                    mode: 'createContour',
+                    points,
+                },
+            });
+            if (!result.success) setError(result.error || '应用到 AI 失败');
+            else {
+                setInlineResultMessage(getInlineSuccessMessage(result));
+                setShowSuccess(true);
+            }
+        } catch (err: any) {
+            setError(err?.message || '应用到 AI 失败');
+        } finally {
+            setIsAlphaExecuting(false);
+        }
+    };
+
     const exportImageVectorizeSource = useCallback(async (finalParams: Record<string, any>) => {
         setVectorizeLoading(true);
         try {
@@ -1941,6 +2016,103 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     // --- Special UI renderers (no duplicate titles: header row already shows name + info) ---
 
     function renderSpecialUI() {
+        if (script.id === 'extract-image-contour') {
+            const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
+            const fieldNames = ['simplify', 'smoothAmount', 'stroke', 'strokeUnit', 'position', 'container'];
+            const boolNames = ['smoothResult', 'enableStroke'];
+            const renderField = (name: string) => {
+                const p = paramMap.get(name);
+                if (!p) return null;
+                if ((name === 'stroke' || name === 'strokeUnit') && params.enableStroke === false) return null;
+                if (name === 'smoothAmount' && params.smoothResult === false) return null;
+                return (
+                    <div key={name}>
+                        <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                            {p.label}
+                        </label>
+                        {renderParamInput(p, params, setParams)}
+                    </div>
+                );
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '8px 10px',
+                    }}>
+                        {fieldNames.map(renderField)}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {boolNames.map((name) => {
+                            const p = paramMap.get(name);
+                            if (!p) return null;
+                            const active = params[p.name] ?? p.default ?? false;
+                            return (
+                                <span key={p.name} style={chipStyle(active)}
+                                    onClick={() => setParams(prev => ({ ...prev, [p.name]: !active }))}>
+                                    {p.label}
+                                </span>
+                            );
+                        })}
+                    </div>
+                    <SuccessButton className="btn btn-primary" onClick={handleGenerateImageContour} disabled={isExecuting} style={{ width: '100%' }}>
+                        {isExecuting && !imageContourPreviews.length ? <><span className="spinner" /> 生成中...</> : '执行'}
+                    </SuccessButton>
+                    {imageContourPreviews.length > 0 && (
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                            gap: 8,
+                        }}>
+                            {imageContourPreviews.map((preview) => (
+                                <div
+                                    key={preview.key}
+                                    onClick={() => {
+                                        if (!isExecuting) handleApplyImageContour(preview);
+                                    }}
+                                    style={{
+                                        border: imageContourSelectedKey === preview.key
+                                            ? '2px solid var(--color-accent)'
+                                            : '1px solid var(--color-border)',
+                                        borderRadius: 'var(--radius-md)',
+                                        overflow: 'hidden',
+                                        background: 'var(--color-bg-secondary)',
+                                        cursor: isExecuting ? 'default' : 'pointer',
+                                        opacity: isExecuting && imageContourSelectedKey === preview.key ? 0.65 : 1,
+                                    }}
+                                >
+                                    <div style={{
+                                        padding: '5px 7px',
+                                        fontSize: 10,
+                                        color: 'var(--color-text-secondary)',
+                                        borderBottom: '1px solid var(--color-border)',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                    }}>
+                                        {preview.name}
+                                    </div>
+                                    <img
+                                        src={preview.url}
+                                        alt={preview.name}
+                                        style={{
+                                            display: 'block',
+                                            width: '100%',
+                                            height: 120,
+                                            objectFit: 'contain',
+                                            background: '#fff',
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         if (script.id === 'image-vectorize') {
             const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
             const getParam = (name: string) => paramMap.get(name);
@@ -5433,6 +5605,22 @@ interface VectorComponent {
     fill: string;
 }
 
+interface ImageContourExportData {
+    filePath: string;
+    bounds: [number, number, number, number];
+    itemType?: string;
+    itemName?: string;
+}
+
+interface ImageContourPreview {
+    key: string;
+    name: string;
+    url: string;
+    mask: Uint8Array;
+    width: number;
+    height: number;
+}
+
 function getAlphaMaxSide(quality: any): number {
     if (quality === 'fast') return 640;
     if (quality === 'fine') return 1536;
@@ -5723,6 +5911,147 @@ function pointsToSvgPath(points: Point2D[], smooth: boolean): string {
         for (let i = 1; i < points.length; i++) path += ` L${fmt(points[i][0])} ${fmt(points[i][1])}`;
     }
     return `${path} Z`;
+}
+
+function decodeImageContourPreviews(filePath: string): ImageContourPreview[] {
+    const fs = require('fs') as typeof import('fs');
+    const UTIF = require('../../lib/utif.js');
+    const buffer = fs.readFileSync(filePath);
+    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const bytes = new Uint8Array(arrayBuffer);
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    let data: Uint8Array | Uint8ClampedArray;
+    let width = 0;
+    let height = 0;
+
+    if (ext === 'jpg' || ext === 'jpeg') {
+        const parser = new UTIF.JpegDecoder();
+        parser.parse(bytes);
+        width = parser.width;
+        height = parser.height;
+        data = parser.getData({ width, height, forceRGB: true, isSourcePDF: false });
+    } else if (ext === 'tif' || ext === 'tiff') {
+        const ifds = UTIF.decode(arrayBuffer);
+        if (!ifds || !ifds.length) throw new Error('UTIF 没有解析到 TIFF 页面');
+        const page = ifds[0];
+        UTIF.decodeImage(arrayBuffer, page, ifds);
+        width = page.width;
+        height = page.height;
+        data = UTIF.toRGBA8(page);
+    } else {
+        throw new Error('当前只支持 JPG/TIF/TIFF 临时图');
+    }
+
+    return buildRecommendedImageContourPreviews(data, width, height);
+}
+
+function buildRecommendedImageContourPreviews(data: Uint8Array | Uint8ClampedArray, width: number, height: number): ImageContourPreview[] {
+    const channels = Math.max(1, Math.round(data.length / Math.max(1, width * height)));
+    const nonWhite = imageRgbMaskFromData(data, width, height, channels, 'nonWhite');
+    const dark = imageRgbMaskFromData(data, width, height, channels, 'dark');
+    const bright = imageRgbMaskFromData(data, width, height, channels, 'bright');
+    const filled = fillImageMaskHoles(nonWhite, width, height);
+    const combined = mergeImageMasks(filled, dark);
+    const full = new Uint8Array(width * height);
+    full.fill(1);
+
+    return [
+        { key: 'default', name: '默认样式', url: imageMaskToPreviewUrl(nonWhite, width, height), mask: nonWhite, width, height },
+        { key: 'filled', name: '填充镂空', url: imageMaskToPreviewUrl(filled, width, height), mask: filled, width, height },
+        { key: 'full', name: '全画面', url: imageMaskToPreviewUrl(full, width, height), mask: full, width, height },
+        { key: 'bright', name: '亮色', url: imageMaskToPreviewUrl(bright, width, height), mask: bright, width, height },
+        { key: 'dark', name: '暗色', url: imageMaskToPreviewUrl(dark, width, height), mask: dark, width, height },
+        { key: 'combined', name: '组合', url: imageMaskToPreviewUrl(combined, width, height), mask: combined, width, height },
+    ];
+}
+
+function imageRgbMaskFromData(
+    data: Uint8Array | Uint8ClampedArray,
+    width: number,
+    height: number,
+    channels: number,
+    mode: 'nonWhite' | 'dark' | 'bright'
+): Uint8Array {
+    const mask = new Uint8Array(width * height);
+    for (let i = 0; i < mask.length; i++) {
+        const src = i * channels;
+        const r = data[src] ?? 0;
+        const g = data[src + Math.min(1, channels - 1)] ?? r;
+        const b = data[src + Math.min(2, channels - 1)] ?? r;
+        const lum = r * 0.2126 + g * 0.7152 + b * 0.0722;
+        if (mode === 'nonWhite') mask[i] = (r < 250 || g < 250 || b < 250) ? 1 : 0;
+        else if (mode === 'dark') mask[i] = lum < 96 ? 1 : 0;
+        else mask[i] = (r < 245 || g < 245 || b < 245) && lum >= 96 ? 1 : 0;
+    }
+    return mask;
+}
+
+function fillImageMaskHoles(mask: Uint8Array, width: number, height: number): Uint8Array {
+    const outside = new Uint8Array(mask.length);
+    const queue = new Int32Array(mask.length);
+    let head = 0;
+    let tail = 0;
+    const push = (x: number, y: number) => {
+        if (x < 0 || y < 0 || x >= width || y >= height) return;
+        const index = y * width + x;
+        if (mask[index] || outside[index]) return;
+        outside[index] = 1;
+        queue[tail++] = index;
+    };
+    for (let x = 0; x < width; x++) {
+        push(x, 0);
+        push(x, height - 1);
+    }
+    for (let y = 0; y < height; y++) {
+        push(0, y);
+        push(width - 1, y);
+    }
+    while (head < tail) {
+        const index = queue[head++];
+        const x = index % width;
+        const y = Math.floor(index / width);
+        push(x + 1, y);
+        push(x - 1, y);
+        push(x, y + 1);
+        push(x, y - 1);
+    }
+    const filled = new Uint8Array(mask.length);
+    for (let i = 0; i < mask.length; i++) filled[i] = mask[i] || !outside[i] ? 1 : 0;
+    return filled;
+}
+
+function mergeImageMasks(a: Uint8Array, b: Uint8Array): Uint8Array {
+    const out = new Uint8Array(Math.min(a.length, b.length));
+    for (let i = 0; i < out.length; i++) out[i] = a[i] || b[i] ? 1 : 0;
+    return out;
+}
+
+function imageMaskToPreviewUrl(mask: Uint8Array, width: number, height: number): string {
+    const maxSide = 360;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    const outW = Math.max(1, Math.round(width * scale));
+    const outH = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    const image = ctx.createImageData(outW, outH);
+    for (let y = 0; y < outH; y++) {
+        const sy = Math.min(height - 1, Math.floor(y / scale));
+        for (let x = 0; x < outW; x++) {
+            const sx = Math.min(width - 1, Math.floor(x / scale));
+            const src = sy * width + sx;
+            const dst = (y * outW + x) * 4;
+            const v = mask[src] ? 0 : 255;
+            image.data[dst] = v;
+            image.data[dst + 1] = v;
+            image.data[dst + 2] = v;
+            image.data[dst + 3] = 255;
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+    return canvas.toDataURL('image/png');
 }
 
 function morphology(mask: Uint8Array, width: number, height: number, radius: number, mode: 'dilate' | 'erode'): Uint8Array {
