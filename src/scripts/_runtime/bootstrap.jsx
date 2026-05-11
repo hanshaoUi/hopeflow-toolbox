@@ -13,7 +13,7 @@ if (typeof $.hopeflow === 'undefined') {
 }
 
 // Version marker
-$.hopeflow.version = '3.1.404';
+$.hopeflow.version = '3.1.405';
 $.hopeflow.ready = false;
 
 // Internal state

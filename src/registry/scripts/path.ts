@@ -446,6 +446,7 @@ export const pathScripts: ScriptMetadata[] = [
     category: 'path',
     icon: 'outline',
     persistParams: true,
+    badges: ['New'],
     params: [
       {
         name: 'mode',

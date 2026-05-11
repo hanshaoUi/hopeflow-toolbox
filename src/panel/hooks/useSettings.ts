@@ -1,10 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 
+export interface ScriptMetaEntry {
+    count: number;
+    lastRun: number;
+    favorited: boolean;
+    tags: string[];
+}
+
 export interface HFSettings {
     libraries: { name: string; path: string }[];
     scriptFolders: { name: string; path: string }[];
     uploadedScripts: { name: string; path: string }[];
-    executedScriptPaths: string[];
+    scriptMeta: Record<string, ScriptMetaEntry>;
     apiKeys: {
         pexels: string;
         pixabay: string;
@@ -26,7 +33,7 @@ const DEFAULTS: HFSettings = {
     libraries: [],
     scriptFolders: [],
     uploadedScripts: [],
-    executedScriptPaths: [],
+    scriptMeta: {},
     apiKeys: { pexels: '', pixabay: '' },
     ai: {
         defaultScale: 2,
@@ -94,7 +101,21 @@ function loadSettings(): HFSettings {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            return { ...DEFAULTS, ...parsed, ai: { ...DEFAULTS.ai, ...(parsed.ai || {}) } };
+            // Migrate executedScriptPaths -> scriptMeta
+            if (Array.isArray(parsed.executedScriptPaths) && !parsed.scriptMeta) {
+                const meta: Record<string, ScriptMetaEntry> = {};
+                (parsed.executedScriptPaths as string[]).forEach((p: string) => {
+                    meta[p] = { count: 1, lastRun: 0, favorited: false, tags: [] };
+                });
+                parsed.scriptMeta = meta;
+                delete parsed.executedScriptPaths;
+            }
+            return {
+                ...DEFAULTS,
+                ...parsed,
+                ai: { ...DEFAULTS.ai, ...(parsed.ai || {}) },
+                scriptMeta: parsed.scriptMeta || {},
+            };
         }
     } catch { }
     // First run: migrate from old individual keys.

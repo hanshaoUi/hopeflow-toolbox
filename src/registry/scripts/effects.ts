@@ -285,6 +285,7 @@ export const effectsScripts: ScriptMetadata[] = [
     category: 'effects',
     icon: 'shuffle',
     persistParams: true,
+    badges: ['Beta'],
     params: [
       {
         name: 'target',

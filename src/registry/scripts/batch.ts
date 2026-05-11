@@ -226,6 +226,7 @@ export const batchScripts: ScriptMetadata[] = [
     category: 'batch',
     icon: 'refresh',
     persistParams: true,
+    badges: ['New'],
     params: [
       {
         name: 'target',
