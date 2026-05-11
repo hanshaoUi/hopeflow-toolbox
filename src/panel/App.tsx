@@ -366,7 +366,7 @@ export const App: React.FC = () => {
                     background: 'var(--color-bg-secondary)',
                 }}>
                     <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
-                        © 2024–2025 hanshaoUi · HopeFlow v{APP_VERSION}
+                        © 2020–{new Date().getFullYear()} HOPE · HopeFlow v{APP_VERSION}
                     </span>
                 </div>
             </div>
