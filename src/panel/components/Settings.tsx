@@ -188,6 +188,8 @@ export const Settings: React.FC = () => {
     </div>
   );
 
+ 
+  
   const renderAbout = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <button type="button" onClick={() => setPage('settings')} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'transparent', color: 'var(--color-accent)', fontSize: 11, cursor: 'pointer', padding: '2px 0 6px' }}>
@@ -292,6 +294,24 @@ export const Settings: React.FC = () => {
     </div>
   );
 
+  const NavRow = ({ icon, iconBg, title, desc, onClick }: {
+    icon: string; iconBg: string; title: string; desc: string; onClick: () => void;
+  }) => (
+    <button type="button" onClick={onClick}
+      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+      <div style={{ width: 30, height: 30, borderRadius: 9, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+        <Icon name={icon} size={14} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>{title}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 1 }}>{desc}</div>
+      </div>
+      <svg viewBox="0 0 24 24" width={14} height={14} fill="none" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+        <polyline stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  );
+
   const renderSettings = () => (
     <>
       <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 12, padding: 14 }}>
@@ -299,17 +319,9 @@ export const Settings: React.FC = () => {
           <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #1aa3ff 0%, #0066cc 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
             <Icon name="settings" size={14} />
           </div>
-          <div style={{ flex: 1 }}>
+          <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)' }}>插件设置</div>
             <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>HopeFlow v{APP_VERSION}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {([{ key: 'about' as Page, label: '关于', icon: 'info' }, { key: 'donate' as Page, label: '赞赏', icon: 'heart' }]).map((item) => (
-              <button key={item.key} type="button" onClick={() => setPage(item.key)} title={item.label}
-                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 8, background: 'transparent', color: item.key === 'donate' ? 'rgba(255,107,107,0.8)' : 'var(--color-text-tertiary)', cursor: 'pointer' }}>
-                <Icon name={item.icon} size={15} />
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -325,6 +337,12 @@ export const Settings: React.FC = () => {
       <Accordion id="ai" icon="sparkle" iconBg="linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" title="AI 默认参数" desc={`${settings.ai.defaultScale}x · ${settings.ai.defaultUpscaleEngine === 'realesrgan' ? '高质量' : '快速'}`}>
         {renderAIContent()}
       </Accordion>
+
+      <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+        <NavRow icon="info" iconBg="linear-gradient(135deg, #34c759 0%, #28a745 100%)" title="关于" desc={`HopeFlow v${APP_VERSION}`} onClick={() => setPage('about')} />
+        <div style={{ height: 1, background: 'var(--color-border)', margin: '0 14px' }} />
+        <NavRow icon="heart" iconBg="linear-gradient(135deg, #ff6b6b 0%, #e53935 100%)" title="赞赏开发者" desc="请我喝杯咖啡 ☕" onClick={() => setPage('donate')} />
+      </div>
     </>
   );
 
