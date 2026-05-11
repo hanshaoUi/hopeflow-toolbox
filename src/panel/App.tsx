@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CategoryNav, MaterialLibrary, Settings } from './components';
+import { CategoryNav, MaterialLibrary, ScriptManager, Settings } from './components';
 import { ScriptCard } from './components';
+import { APP_VERSION } from '../version';
 import {
     SCRIPT_REGISTRY,
     getScriptsByCategory,
@@ -231,7 +232,7 @@ export const App: React.FC = () => {
             </div>
 
             {/* Right Content */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--color-bg-primary)', minWidth: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--color-bg-primary)', minWidth: 0, overflow: 'hidden' }}>
                 {/* Top Bar: Search */}
                 <div
                     style={{
@@ -323,6 +324,8 @@ export const App: React.FC = () => {
                     </div>
                 ) : selectedCategory === 'library' ? (
                     <MaterialLibrary />
+                ) : selectedCategory === 'script-manager' ? (
+                    <ScriptManager />
                 ) : (
                     <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
                         {baseScripts.length === 0 ? (
@@ -352,6 +355,20 @@ export const App: React.FC = () => {
                         )}
                     </div>
                 )}
+                {/* Footer */}
+                <div style={{
+                    flexShrink: 0,
+                    borderTop: '1px solid var(--color-border)',
+                    padding: '5px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--color-bg-secondary)',
+                }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
+                        © 2024–2025 hanshaoUi · HopeFlow v{APP_VERSION}
+                    </span>
+                </div>
             </div>
         </div>
     );
