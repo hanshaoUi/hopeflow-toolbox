@@ -117,6 +117,7 @@ export const pathScripts: ScriptMetadata[] = [
     description: '从当前选区生成图片外轮廓推荐图，点击推荐图后创建 AI 路径。',
     category: 'path',
     icon: 'vector',
+    badges: ['Beta'],
     persistParams: true,
     params: [
       {
@@ -435,6 +436,41 @@ export const pathScripts: ScriptMetadata[] = [
         min: 0,
         step: 0.5,
         suffix: 'mm',
+      },
+    ],
+  },
+  {
+    id: 'draw-selection-bounds',
+    name: '绘制定界框',
+    description: '将当前选区的边界线、中心点、锚点及控制柄绘制为可编辑矢量路径，输出到独立图层「limitesSelection」。',
+    category: 'path',
+    icon: 'outline',
+    persistParams: true,
+    params: [
+      {
+        name: 'mode',
+        type: 'select',
+        label: '绘制模式',
+        default: 'all',
+        options: [
+          { value: 'all', label: '全局（边框 + 中心点）' },
+          { value: 'each', label: '逐对象（锚点 + 控制柄）' },
+        ],
+      },
+      { name: 'anchorSize', type: 'number', label: '锚点大小 (mm)', default: 2, min: 0.5, step: 0.5, suffix: 'mm' },
+      {
+        name: 'color',
+        type: 'select',
+        label: '颜色',
+        default: 'orange',
+        options: [
+          { value: 'orange', label: '橙色' },
+          { value: 'purple', label: '紫色' },
+          { value: 'green',  label: '绿色' },
+          { value: 'blue',   label: '蓝色' },
+          { value: 'white',  label: '白色' },
+          { value: 'black',  label: '黑色' },
+        ],
       },
     ],
   },

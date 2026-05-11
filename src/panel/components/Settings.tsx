@@ -241,7 +241,7 @@ export const Settings: React.FC = () => {
         </button>
       ))}
       <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textAlign: 'center', paddingTop: 2 }}>
-        © 2024–2025 hanshaoUi · 保留所有权利
+         © 2020–{new Date().getFullYear()} HOPE · 保留所有权利
       </div>
     </div>
   );

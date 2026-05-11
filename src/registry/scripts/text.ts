@@ -1,4 +1,4 @@
-﻿import type { ScriptMetadata } from '../script-manifest';
+import type { ScriptMetadata } from '../script-manifest';
 
 export const textScripts: ScriptMetadata[] = [
   {

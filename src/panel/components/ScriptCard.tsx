@@ -672,6 +672,104 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
     }, []);
 
+    // --- Hachures real-time preview ---
+    const hachuresPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hachuresPreviewActiveRef = useRef(false);
+    // Serialise all hachures preview operations so undo/run never overlap
+    const hachuresChainRef = useRef<Promise<void>>(Promise.resolve());
+    const hachuresPendingRef = useRef(0);
+    const hachuresLatestParamsRef = useRef<Record<string, any>>(params);
+    useEffect(() => { hachuresLatestParamsRef.current = params; }, [params]);
+    const [hachuresLiveMode, setHachuresLiveMode] = useState(true);
+    const [hachuresPreviewing, setHachuresPreviewing] = useState(false);
+    const [hachuresPreviewVersion, setHachuresPreviewVersion] = useState(0);
+
+    const silentExecuteHachures = useCallback(async (previewArgs: Record<string, any>) => {
+        try {
+            const bridge = await getBridge();
+            await bridge.executeScript({
+                scriptId: 'hachures',
+                scriptPath: `./src/scripts/effects/hachures.jsx`,
+                args: previewArgs,
+            });
+        } catch (e) {
+            // Silently ignore preview errors
+        }
+    }, []);
+
+    const runHachuresPreview = useCallback((overrideParams?: Record<string, any>) => {
+        if (script.id !== 'hachures') return Promise.resolve();
+        hachuresPendingRef.current++;
+        setHachuresPreviewing(true);
+        const next = hachuresChainRef.current.then(async () => {
+            // Always use the freshest params at the moment this slot in the chain runs
+            const paramsToUse = overrideParams ?? hachuresLatestParamsRef.current;
+            const shouldUndo = hachuresPreviewActiveRef.current;
+            try {
+                await silentExecuteHachures({
+                    ...paramsToUse,
+                    preview: true,
+                    shouldUndo,
+                });
+                hachuresPreviewActiveRef.current = true;
+                setHachuresPreviewVersion((v) => v + 1);
+            } finally {
+                hachuresPendingRef.current = Math.max(0, hachuresPendingRef.current - 1);
+                if (hachuresPendingRef.current === 0) setHachuresPreviewing(false);
+            }
+        });
+        hachuresChainRef.current = next;
+        return next;
+    }, [script.id, silentExecuteHachures]);
+
+    const cancelHachuresPreview = useCallback(() => {
+        hachuresPendingRef.current++;
+        setHachuresPreviewing(true);
+        const next = hachuresChainRef.current.then(async () => {
+            try {
+                if (!hachuresPreviewActiveRef.current) return;
+                await silentExecuteHachures({ clearOnly: true, shouldUndo: true });
+                hachuresPreviewActiveRef.current = false;
+                setHachuresPreviewVersion((v) => v + 1);
+            } finally {
+                hachuresPendingRef.current = Math.max(0, hachuresPendingRef.current - 1);
+                if (hachuresPendingRef.current === 0) setHachuresPreviewing(false);
+            }
+        });
+        hachuresChainRef.current = next;
+        return next;
+    }, [silentExecuteHachures]);
+
+    // Auto-preview on param change when live mode is enabled
+    useEffect(() => {
+        if (script.id !== 'hachures') return;
+        if (!isExpanded) return;
+        if (!hachuresLiveMode) return;
+        if (hachuresPreviewTimerRef.current) clearTimeout(hachuresPreviewTimerRef.current);
+        hachuresPreviewTimerRef.current = setTimeout(() => {
+            void runHachuresPreview();
+        }, 500);
+        return () => {
+            if (hachuresPreviewTimerRef.current) clearTimeout(hachuresPreviewTimerRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [script.id, isExpanded, hachuresLiveMode, params]);
+
+    // Cleanup hachures preview when card collapses (keep live-mode preference)
+    useEffect(() => {
+        if (script.id !== 'hachures') return;
+        if (!isExpanded && hachuresPreviewActiveRef.current) {
+            // Queue cleanup through the chain so it doesn't race with an in-flight preview
+            hachuresChainRef.current = hachuresChainRef.current.then(async () => {
+                if (!hachuresPreviewActiveRef.current) return;
+                try {
+                    await silentExecuteHachures({ clearOnly: true, shouldUndo: true });
+                } catch (e) { /* ignore */ }
+                hachuresPreviewActiveRef.current = false;
+            });
+        }
+    }, [script.id, isExpanded, silentExecuteHachures]);
+
     // Trigger preview on param change (all make-size params)
     useEffect(() => {
         if (script.id !== 'make-size') return;
@@ -1868,6 +1966,24 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                         }} />
                     )}
                     <h3 style={{ fontSize: 'var(--font-size-md)', margin: 0, fontWeight: 500 }}>{script.name}</h3>
+                    {script.badges?.map((badge) => (
+                        <span
+                            key={badge}
+                            style={{
+                                fontSize: '10px',
+                                lineHeight: 1,
+                                color: 'var(--color-accent)',
+                                background: 'var(--color-accent-soft)',
+                                border: '1px solid var(--color-accent-muted)',
+                                borderRadius: '999px',
+                                padding: '3px 6px',
+                                fontWeight: 600,
+                                flexShrink: 0,
+                            }}
+                        >
+                            {badge}
+                        </span>
+                    ))}
                     {script.description && <InfoIcon tooltip={script.description} />}
                 </div>
 
@@ -3036,7 +3152,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                         </div>
                         <div className="text-secondary" style={{ paddingTop: '20px' }}>-</div>
                         <div style={{ flex: 1 }}>
-                            <label className="text-xs mb-xs block">鍚庣紑:</label>
+                            <label className="text-xs mb-xs block">后缀:</label>
                             <CompositionInput
                                 type="text"
                                 className="input"
@@ -3079,7 +3195,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                             </select>
                         </div>
                         <div style={{ flex: 1 }}>
-                            <label className="text-xs mb-xs block">姣斾緥(x):</label>
+                            <label className="text-xs mb-xs block">比例1:(x):</label>
                             <input
                                 type="number"
                                 className="input"
@@ -3216,6 +3332,404 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
 
                     <SuccessButton className="btn btn-primary" onClick={handleExecute} disabled={isExecuting} style={{ width: '100%' }}>
                         {isExecuting ? <><span className="spinner" /> 执行中...</> : '执行'}
+                    </SuccessButton>
+                </div>
+            );
+        }
+
+        if (script.id === 'hachures') {
+            const getParam = (name: string) => script.params?.find((p) => p.name === name);
+
+            const sectionStyle: React.CSSProperties = {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-bg-tertiary)',
+            };
+            const titleStyle: React.CSSProperties = {
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--color-text-secondary)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+            };
+            const gridStyle: React.CSSProperties = {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '8px 10px',
+            };
+            const renderField = (name: string, fullWidth = false) => {
+                const p = getParam(name);
+                if (!p) return null;
+                return (
+                    <div key={name} style={fullWidth ? { gridColumn: '1 / -1' } : undefined}>
+                        <label style={{ display: 'block', marginBottom: '3px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                            {p.label}
+                        </label>
+                        {renderParamInput(p, params, setParams)}
+                        {p.description && (
+                            <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--color-text-tertiary)', lineHeight: 1.4 }}>
+                                {p.description}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            // 10 curve types rendered as visual SVG icon buttons (5×2 grid)
+            const CURVE_TYPES: Array<{ id: string; name: string; path: string }> = [
+                { id: 'A', name: '直线',           path: 'M3 12 L21 12' },
+                { id: 'B', name: '右端上扬',       path: 'M3 12 L11 12 Q17 12 21 5' },
+                { id: 'C', name: '中央拱起',       path: 'M3 16 Q12 4 21 16' },
+                { id: 'D', name: '中央下凹',       path: 'M3 8 Q12 20 21 8' },
+                { id: 'E', name: '波峰交错',       path: 'M3 17 L8 8 L13 17 L18 8 L21 12' },
+                { id: 'F', name: 'S 形波浪',       path: 'M3 17 C9 17 9 7 12 7 C15 7 15 17 21 7' },
+                { id: 'G', name: '右端上弯',       path: 'M3 12 Q11 12 14 11 Q19 9 21 5' },
+                { id: 'H', name: '右端下弯',       path: 'M3 12 Q11 12 14 13 Q19 15 21 19' },
+                { id: 'I', name: '左端上引',       path: 'M3 5 Q5 9 10 11 Q13 12 21 12' },
+                { id: 'J', name: '左端下引',       path: 'M3 19 Q5 15 10 13 Q13 12 21 12' },
+            ];
+            const selectedCurve = String(params['curveType'] || 'A');
+
+            const cellBaseStyle: React.CSSProperties = {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                padding: '6px 4px',
+                background: 'var(--color-bg-control)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+            };
+            const cellActiveStyle: React.CSSProperties = {
+                ...cellBaseStyle,
+                background: 'var(--color-bg-active)',
+                borderColor: 'var(--color-accent)',
+            };
+
+            const preserveColor = params['preserveColor'] === true || params['preserveColor'] === 'true';
+            const isArtboardMode = String(params['target'] || 'selection') === 'activeArtboard';
+            const previewActive = hachuresPreviewActiveRef.current;
+            void hachuresPreviewVersion; // touch to re-render when preview state changes
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>排线参数</div>
+                        <div style={gridStyle}>
+                            {renderField('target', true)}
+                            {renderField('spacing')}
+                            {renderField('angle')}
+                            {renderField('thickness')}
+                            {renderField('spacingJitter')}
+                        </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>曲线类型</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px' }}>
+                            {CURVE_TYPES.map((t) => {
+                                const active = selectedCurve === t.id;
+                                return (
+                                    <div
+                                        key={t.id}
+                                        title={`${t.id} — ${t.name}`}
+                                        onClick={() => setParams((prev) => ({ ...prev, curveType: t.id }))}
+                                        style={active ? cellActiveStyle : cellBaseStyle}
+                                    >
+                                        <svg width="32" height="20" viewBox="0 0 24 24" style={{ display: 'block' }}>
+                                            <path
+                                                d={t.path}
+                                                fill="none"
+                                                stroke={active ? 'var(--color-accent)' : 'var(--color-text-secondary)'}
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                        <span style={{
+                                            fontSize: '10px',
+                                            fontWeight: 600,
+                                            color: active ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
+                                        }}>
+                                            {t.id}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', lineHeight: 1.45 }}>
+                            {(CURVE_TYPES.find(t => t.id === selectedCurve)?.name) || ''}
+                        </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>外观</div>
+                        <div style={gridStyle}>
+                            {!isArtboardMode && renderField('preserveColor', true)}
+                            {(isArtboardMode || !preserveColor) && renderField('customColor', true)}
+                            {renderField('strokeCap', true)}
+                        </div>
+                    </div>
+
+                    {/* Preview controls */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        background: previewActive ? 'var(--color-accent-soft)' : 'var(--color-bg-tertiary)',
+                        border: '1px solid ' + (previewActive ? 'var(--color-accent-muted)' : 'var(--color-border)'),
+                        borderRadius: 'var(--radius-md)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                                onClick={() => {
+                                    const next = !hachuresLiveMode;
+                                    setHachuresLiveMode(next);
+                                    if (next) void runHachuresPreview();
+                                }}
+                                style={chipStyle(hachuresLiveMode)}
+                                title="开启后参数变化自动刷新预览"
+                            >
+                                实时预览
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)' }}>
+                                {previewActive ? (hachuresPreviewing ? '更新中…' : '预览中') : '未预览'}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <SuccessButton
+                                className="btn btn-sm"
+                                onClick={() => void runHachuresPreview()}
+                                disabled={hachuresPreviewing}
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                            >
+                                {previewActive ? '重新预览' : '预览'}
+                            </SuccessButton>
+                            <SuccessButton
+                                className="btn btn-sm"
+                                onClick={() => void cancelHachuresPreview()}
+                                disabled={!previewActive || hachuresPreviewing}
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                            >
+                                取消
+                            </SuccessButton>
+                        </div>
+                    </div>
+
+                    <SuccessButton
+                        className="btn btn-primary"
+                        onClick={async () => {
+                            // If preview is active, queue a commit through the chain so it can't race
+                            // with an in-flight preview. The commit just removes the sentinel layer.
+                            if (hachuresPreviewActiveRef.current) {
+                                hachuresPendingRef.current++;
+                                setHachuresPreviewing(true);
+                                const next = hachuresChainRef.current.then(async () => {
+                                    try {
+                                        await silentExecuteHachures({ commitPreview: true });
+                                    } catch (e) { /* ignore */ }
+                                    hachuresPreviewActiveRef.current = false;
+                                    setHachuresLiveMode(false);
+                                    setHachuresPreviewVersion((v) => v + 1);
+                                    hachuresPendingRef.current = Math.max(0, hachuresPendingRef.current - 1);
+                                    if (hachuresPendingRef.current === 0) setHachuresPreviewing(false);
+                                });
+                                hachuresChainRef.current = next;
+                                await next;
+                                return;
+                            }
+                            await handleExecute();
+                        }}
+                        disabled={isExecuting || hachuresPreviewing}
+                        style={{ width: '100%' }}
+                    >
+                        {isExecuting ? <><span className="spinner" /> 生成中...</>
+                            : previewActive ? '保留预览结果' : '生成排线'}
+                    </SuccessButton>
+                </div>
+            );
+        }
+
+        if (script.id === 'nettoyage') {
+            const getParam = (name: string) => script.params?.find((p) => p.name === name);
+
+            const sectionStyle: React.CSSProperties = {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-bg-tertiary)',
+            };
+            const titleStyle: React.CSSProperties = {
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--color-text-secondary)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+            };
+            const gridStyle: React.CSSProperties = {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '8px 10px',
+            };
+            const renderField = (name: string, fullWidth = false) => {
+                const p = getParam(name);
+                if (!p) return null;
+                return (
+                    <div key={name} style={fullWidth ? { gridColumn: '1 / -1' } : undefined}>
+                        <label style={{ display: 'block', marginBottom: '3px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                            {p.label}
+                        </label>
+                        {renderParamInput(p, params, setParams)}
+                    </div>
+                );
+            };
+
+            // Boolean fields rendered as chip toggles to save vertical space
+            const renderBoolChip = (name: string) => {
+                const p = getParam(name);
+                if (!p) return null;
+                const active = params[name] ?? p.default ?? false;
+                return (
+                    <span
+                        key={name}
+                        style={chipStyle(!!active)}
+                        title={p.description || ''}
+                        onClick={() => setParams(prev => ({ ...prev, [name]: !active }))}
+                    >
+                        {p.label}
+                    </span>
+                );
+            };
+
+            const reduceImages = params['reduceImages'] === true || params['reduceImages'] === 'true';
+
+            const applyPreset = (preset: 'all' | 'none' | 'print' | 'web') => {
+                setParams(prev => {
+                    const next = { ...prev };
+                    if (preset === 'all') {
+                        next.expandBlends = true;
+                        next.expandLivePaint = true;
+                        next.expandEnvelopes = true;
+                        next.expandAppearance = true;
+                        next.expandAll = false;
+                        next.embedImages = true;
+                        next.reduceImages = false;
+                        next.guidesMode = 'delete';
+                        next.deleteEmptyLayers = true;
+                        next.deleteEmptyText = true;
+                    } else if (preset === 'none') {
+                        next.expandBlends = false;
+                        next.expandLivePaint = false;
+                        next.expandEnvelopes = false;
+                        next.expandAppearance = false;
+                        next.expandAll = false;
+                        next.embedImages = false;
+                        next.reduceImages = false;
+                        next.guidesMode = 'ignore';
+                        next.deleteEmptyLayers = false;
+                        next.deleteEmptyText = false;
+                    } else if (preset === 'print') {
+                        next.expandBlends = false;
+                        next.expandLivePaint = true;
+                        next.expandEnvelopes = true;
+                        next.expandAppearance = true;
+                        next.expandAll = false;
+                        next.embedImages = true;
+                        next.reduceImages = false;
+                        next.guidesMode = 'delete';
+                        next.deleteEmptyLayers = true;
+                        next.deleteEmptyText = true;
+                    } else if (preset === 'web') {
+                        next.expandBlends = false;
+                        next.expandLivePaint = false;
+                        next.expandEnvelopes = false;
+                        next.expandAppearance = true;
+                        next.expandAll = false;
+                        next.embedImages = false;
+                        next.reduceImages = true;
+                        next.reduceDpi = '72';
+                        next.guidesMode = 'delete';
+                        next.deleteEmptyLayers = true;
+                        next.deleteEmptyText = true;
+                    }
+                    return next;
+                });
+            };
+
+            const presetBtn: React.CSSProperties = {
+                padding: '4px 10px',
+                fontSize: '10px',
+                border: '1px solid var(--color-border)',
+                borderRadius: '999px',
+                background: 'var(--color-bg-control)',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>应用范围</div>
+                        <div style={gridStyle}>
+                            {renderField('target', true)}
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', alignSelf: 'center', marginRight: '4px' }}>预设：</span>
+                            <button type="button" style={presetBtn} onClick={() => applyPreset('print')}>印刷输出</button>
+                            <button type="button" style={presetBtn} onClick={() => applyPreset('web')}>网络发布</button>
+                            <button type="button" style={presetBtn} onClick={() => applyPreset('all')}>全部勾选</button>
+                            <button type="button" style={presetBtn} onClick={() => applyPreset('none')}>全部清空</button>
+                        </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>展开操作</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {renderBoolChip('expandBlends')}
+                            {renderBoolChip('expandLivePaint')}
+                            {renderBoolChip('expandEnvelopes')}
+                            {renderBoolChip('expandAppearance')}
+                            {renderBoolChip('expandAll')}
+                        </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>图片处理</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {renderBoolChip('embedImages')}
+                            {renderBoolChip('reduceImages')}
+                        </div>
+                        {reduceImages && (
+                            <div style={gridStyle}>
+                                {renderField('reduceDpi', true)}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>辅助线 / 清理</div>
+                        <div style={gridStyle}>
+                            {renderField('guidesMode', true)}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {renderBoolChip('deleteEmptyLayers')}
+                            {renderBoolChip('deleteEmptyText')}
+                        </div>
+                    </div>
+
+                    <SuccessButton className="btn btn-primary" onClick={handleExecute} disabled={isExecuting} style={{ width: '100%' }}>
+                        {isExecuting ? <><span className="spinner" /> 清理中...</> : '执行清理'}
                     </SuccessButton>
                 </div>
             );

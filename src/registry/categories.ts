@@ -95,6 +95,13 @@ export const CATEGORIES: Category[] = [
         icon: 'folder',
         color: '#8B4513',
     },
+    {
+        id: 'script-manager',
+        name: '脚本管理器',
+        description: '管理自定义脚本文件夹和上传脚本',
+        icon: 'code',
+        color: '#6366F1',
+    },
 ];
 
 /**

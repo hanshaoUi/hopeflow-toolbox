@@ -7,6 +7,7 @@ export const imagesScripts: ScriptMetadata[] = [
     description: '读取当前选中的图片，外部面板调整原版位图转矢量参数后应用到 AI。',
     category: 'images',
     icon: 'vector',
+    badges: ['Beta'],
     persistParams: true,
     params: [
       { name: 'traceMode', type: 'select', label: '模式', default: 'single', options: [

@@ -4,6 +4,7 @@ export { SearchBar } from './SearchBar';
 export { SuccessButton } from './SuccessButton';
 export { ErrorBoundary } from './ErrorBoundary';
 export { MaterialLibrary } from './MaterialLibrary';
+export { ScriptManager } from './ScriptManager';
 export { Settings } from './Settings';
 export { LargeScaleExport } from './LargeScaleExport';
 export { AIEnhance } from './AIEnhance';

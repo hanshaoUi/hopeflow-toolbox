@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 
 export interface HFSettings {
     libraries: { name: string; path: string }[];
+    scriptFolders: { name: string; path: string }[];
+    uploadedScripts: { name: string; path: string }[];
+    executedScriptPaths: string[];
     apiKeys: {
         pexels: string;
         pixabay: string;
@@ -21,6 +24,9 @@ const STORAGE_KEY = 'hf_settings';
 
 const DEFAULTS: HFSettings = {
     libraries: [],
+    scriptFolders: [],
+    uploadedScripts: [],
+    executedScriptPaths: [],
     apiKeys: { pexels: '', pixabay: '' },
     ai: {
         defaultScale: 2,

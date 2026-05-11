@@ -21,6 +21,7 @@ export interface ScriptMetadata {
   description: string;
   category: string;
   icon?: string;
+  badges?: string[];
   params?: ScriptParam[];
   serverSide?: boolean;
   requiresNetwork?: boolean;
