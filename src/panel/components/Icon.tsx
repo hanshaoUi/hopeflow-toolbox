@@ -37,6 +37,10 @@ const ICONS: Record<string, React.ReactNode> = {
     'circle': (
         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
     ),
+    'check': (
+        <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+            d="M20 6L9 17l-5-5" />
+    ),
     'code': (
         <>
             <polyline fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points="16 18 22 12 16 6" />
@@ -305,6 +309,28 @@ const ICONS: Record<string, React.ReactNode> = {
             <line x1="6.8" y1="17.2" x2="17.2" y2="6.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             <line x1="19" y1="7" x2="19" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             <line x1="17" y1="19" x2="21" y2="19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </>
+    ),
+    'chevron-right': (
+        <polyline fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            points="9 18 15 12 9 6" />
+    ),
+    'heart': (
+        <path fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+    ),
+    'info': (
+        <>
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+            <line x1="12" y1="8" x2="12" y2="8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="12" y1="12" x2="12" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </>
+    ),
+    'settings': (
+        <>
+            <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
         </>
     ),
     // Aliases
