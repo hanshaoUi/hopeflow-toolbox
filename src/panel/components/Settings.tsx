@@ -120,8 +120,8 @@ export const Settings: React.FC = () => {
         <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, fontSize: 14, fontWeight: 800 }}>H</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>hanshaoUi</div>
-            <div style={{ ...label, marginTop: 2 }}>sayloveyouless@gmail.com</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>Hope</div>
+            <div style={{ ...label, marginTop: 2 }}>Hoperp@88.com</div>
           </div>
         </div>
       </div>
@@ -144,7 +144,7 @@ export const Settings: React.FC = () => {
 
       <div style={{ ...panel, textAlign: 'center' }}>
         <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', lineHeight: 1.7 }}>
-          © 2024–2025 hanshaoUi · 保留所有权利<br />
+          © 2024–2026 Hope · 保留所有权利<br />
           本插件仅供个人学习与设计使用
         </div>
       </div>
@@ -209,28 +209,26 @@ export const Settings: React.FC = () => {
       <div style={{ ...panel, padding: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #1aa3ff 0%, #0066cc 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}><Icon name="settings" size={14} /></div>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)' }}>插件设置</div>
             <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>素材库路径、在线图库 API 和 AI 默认参数。</div>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {([{ key: 'about', label: '关于', icon: 'info' }, { key: 'donate', label: '赞赏', icon: 'heart' }] as const).map((item) => (
+              <button key={item.key} type="button" onClick={() => setTab(item.key)} title={item.label} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 8, background: tab === item.key ? (item.key === 'donate' ? 'rgba(255,107,107,0.12)' : 'rgba(38,128,235,0.12)') : 'transparent', color: tab === item.key ? (item.key === 'donate' ? '#ff6b6b' : 'var(--color-accent)') : 'var(--color-text-tertiary)', cursor: 'pointer' }}>
+                <Icon name={item.icon} size={14} />
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--color-bg-tertiary)', borderRadius: 10, padding: 3 }}>
-          {([{ key: 'libraries', label: '素材', icon: 'folder' }, { key: 'online', label: '图库', icon: 'image' }, { key: 'ai', label: 'AI', icon: 'sparkle' }] as const).map((item) => (
-            <button key={item.key} type="button" onClick={() => setTab(item.key)} style={{ flex: 1, minHeight: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, border: 'none', borderRadius: 8, background: tab === item.key ? 'var(--color-bg-primary)' : 'transparent', color: tab === item.key ? 'var(--color-accent)' : 'var(--color-text-secondary)', fontSize: 11, fontWeight: tab === item.key ? 700 : 500, cursor: 'pointer' }}>
-              <Icon name={item.icon} size={11} />{item.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 4, background: 'var(--color-bg-tertiary)', borderRadius: 10, padding: 3 }}>
-          {([{ key: 'about', label: '关于', icon: 'info' }, { key: 'donate', label: '赞赏', icon: 'heart' }] as const).map((item) => (
-            <button key={item.key} type="button" onClick={() => setTab(item.key)} style={{ flex: 1, minHeight: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, border: 'none', borderRadius: 8, background: tab === item.key ? 'var(--color-bg-primary)' : 'transparent', color: tab === item.key ? (item.key === 'donate' ? '#ff6b6b' : 'var(--color-accent)') : 'var(--color-text-secondary)', fontSize: 11, fontWeight: tab === item.key ? 700 : 500, cursor: 'pointer' }}>
-              <Icon name={item.icon} size={11} />{item.label}
-            </button>
-          ))}
-        </div>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--color-bg-tertiary)', borderRadius: 10, padding: 3 }}>
+        {([{ key: 'libraries', label: '素材', icon: 'folder' }, { key: 'online', label: '图库', icon: 'image' }, { key: 'ai', label: 'AI', icon: 'sparkle' }] as const).map((item) => (
+          <button key={item.key} type="button" onClick={() => setTab(item.key)} style={{ flex: 1, minHeight: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, border: 'none', borderRadius: 8, background: tab === item.key ? 'var(--color-bg-primary)' : 'transparent', color: tab === item.key ? 'var(--color-accent)' : 'var(--color-text-secondary)', fontSize: 11, fontWeight: tab === item.key ? 700 : 500, cursor: 'pointer' }}>
+            <Icon name={item.icon} size={11} />{item.label}
+          </button>
+        ))}
       </div>
 
       {tab === 'libraries' && renderLibraries()}
