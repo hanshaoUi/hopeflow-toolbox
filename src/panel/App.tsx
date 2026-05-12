@@ -7,7 +7,7 @@ import {
     getScriptsByCategory,
     searchScripts,
 } from '@registry/script-manifest';
-import { CATEGORIES } from '@registry/categories';
+import { CATEGORIES, FAVORITES_CATEGORY_ID } from '@registry/categories';
 import { useSettings } from './hooks/useSettings';
 import * as AIEngine from './services/ai-engine';
 import './styles/theme.css';
@@ -17,17 +17,23 @@ let engineWarmupStarted = false;
 
 export const App: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(
-        CATEGORIES[0]?.id || null
+        CATEGORIES.find((c) => c.id !== FAVORITES_CATEGORY_ID)?.id || null
     );
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedScriptId, setExpandedScriptId] = useState<string | null>(null);
 
+    const { settings, update } = useSettings();
+
     const scriptCounts = useMemo(() => {
-        return CATEGORIES.reduce((acc, cat) => {
+        const counts = CATEGORIES.reduce((acc, cat) => {
             acc[cat.id] = getScriptsByCategory(cat.id).length;
             return acc;
         }, {} as Record<string, number>);
-    }, []);
+        counts[FAVORITES_CATEGORY_ID] = SCRIPT_REGISTRY.filter(
+            (s) => settings.scriptMeta[s.id]?.favorited
+        ).length;
+        return counts;
+    }, [settings.scriptMeta]);
 
     const isSettings = selectedCategory === SETTINGS_ID;
 
@@ -36,12 +42,16 @@ export const App: React.FC = () => {
             return searchScripts(searchQuery);
         }
 
+        if (selectedCategory === FAVORITES_CATEGORY_ID) {
+            return SCRIPT_REGISTRY.filter((s) => settings.scriptMeta[s.id]?.favorited);
+        }
+
         if (selectedCategory && !isSettings) {
             return getScriptsByCategory(selectedCategory);
         }
 
         return [];
-    }, [isSettings, searchQuery, selectedCategory]);
+    }, [isSettings, searchQuery, selectedCategory, settings.scriptMeta]);
 
     // Search handler
     const handleSearch = (query: string) => {
@@ -68,8 +78,6 @@ export const App: React.FC = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
-
-    const { settings, update } = useSettings();
 
     const sidebarExpanded = settings.sidebarExpanded;
     const setSidebarExpanded = (expanded: boolean) => update('sidebarExpanded', expanded);
@@ -331,7 +339,11 @@ export const App: React.FC = () => {
                         {baseScripts.length === 0 ? (
                             <div style={{ textAlign: 'center', paddingTop: '48px' }}>
                                 <p className="text-secondary">
-                                    {searchQuery ? '未找到匹配的工具' : '此分类暂无工具'}
+                                    {searchQuery
+                                        ? '未找到匹配的工具'
+                                        : selectedCategory === FAVORITES_CATEGORY_ID
+                                            ? '还没有收藏任何功能，点击工具右侧的 ★ 即可收藏'
+                                            : '此分类暂无工具'}
                                 </p>
                             </div>
                         ) : (

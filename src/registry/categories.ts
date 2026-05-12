@@ -9,7 +9,16 @@ export interface Category {
 /**
  * Script categories
  */
+export const FAVORITES_CATEGORY_ID = 'favorites';
+
 export const CATEGORIES: Category[] = [
+    {
+        id: 'favorites',
+        name: '收藏夹',
+        description: '收藏的常用功能，快速访问',
+        icon: 'star',
+        color: '#FFCF4D',
+    },
     {
         id: 'alignment',
         name: '快捷操作',
