@@ -73,4 +73,12 @@ export const colorScripts: ScriptMetadata[] = [
     category: 'color',
     icon: 'swap',
   },
+  {
+    id: 'ai-color-generator',
+    name: 'AI 色号产生器',
+    description: '智能生成色号色卡，支持从选中颜色或自定义配置批量产生色号标注。',
+    category: 'color',
+    icon: 'palette',
+    badges: ['CJ'],
+  },
 ];
