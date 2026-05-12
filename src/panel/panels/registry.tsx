@@ -10,6 +10,7 @@ import { OpenPDF } from '../components/OpenPDF';
 import { DataMerge } from '../components/DataMerge';
 import { TextStyleRules } from '../components/TextStyleRules';
 import { ArtboardSizeTableExport } from '../components/ArtboardSizeTableExport';
+import { ColorSeparatorPanel } from '../components/ColorSeparatorPanel';
 
 // Panels that receive params/execution props from ScriptCard
 export const PARAM_PANELS: Record<string, React.FC<ScriptPanelProps>> = {
@@ -25,6 +26,7 @@ export const STANDALONE_PANELS: Record<string, React.FC> = {
     'data-merge': DataMerge,
     'text-style-rules': TextStyleRules,
     'export-artboard-size-table': ArtboardSizeTableExport,
+    'ai-color-generator': ColorSeparatorPanel,
 };
 
 // Returns true if a script ID has a registered panel (standalone or param-based)
