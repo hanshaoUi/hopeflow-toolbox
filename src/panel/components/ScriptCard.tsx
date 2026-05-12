@@ -2634,6 +2634,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             const fieldWrap: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 };
             const labelSt: React.CSSProperties = { fontSize: '11px', color: 'var(--color-text-tertiary)', lineHeight: 1.2 };
             const inputSt: React.CSSProperties = { height: '34px', fontSize: '13px' };
+            const miniInputSt: React.CSSProperties = { width: '52px', height: '26px', fontSize: '12px', textAlign: 'center', padding: '0 2px' };
+
+            const marginLinked = getP('marginLinked', true) as boolean;
+            const getM = (side: string) => getP('margin' + side, 0);
+            const setM = (side: string, raw: string) => {
+                if (marginLinked) {
+                    setParams(prev => ({ ...prev, marginTop: raw, marginRight: raw, marginBottom: raw, marginLeft: raw }));
+                } else {
+                    setP('margin' + side, raw);
+                }
+            };
             const sectionSt: React.CSSProperties = {
                 display: 'flex',
                 flexDirection: 'column',
@@ -2722,22 +2733,63 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                                 ]}
                             />
                         </Field>
-                        <Field label="位置">
-                            <Select
-                                name="position"
-                                fallback="inside"
-                                options={[
-                                    { value: 'inside', label: '画面内' },
-                                    { value: 'outside', label: '画面外' },
-                                ]}
-                            />
-                        </Field>
                         <Field label="圆直径 (mm)">
                             <Num name="diameter" fallback={8} min={0.1} step={0.5} />
                         </Field>
-                        <Field label="距边 (mm)">
-                            <Num name="margin" fallback={0} min={0} step={0.5} />
-                        </Field>
+                    </div>
+
+                    {/* Four-side margin box model control */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1px' }}>
+                            <label style={labelSt}>距边 (mm)</label>
+                            <button
+                                type="button"
+                                onClick={() => setP('marginLinked', !marginLinked)}
+                                title={marginLinked ? '解除四边联动' : '启用四边联动'}
+                                style={{
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '5px',
+                                    background: marginLinked ? 'var(--color-accent)' : 'var(--color-bg-secondary)',
+                                    color: marginLinked ? '#fff' : 'var(--color-text-tertiary)',
+                                    height: '20px',
+                                    padding: '0 6px',
+                                    cursor: 'pointer',
+                                    fontSize: '10px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                }}
+                            >
+                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                                    {marginLinked ? (
+                                        <path d="M1 6h10M4 3.5A2.5 2.5 0 014 8.5H3a2.5 2.5 0 010-5h1M8 3.5A2.5 2.5 0 018 8.5h1a2.5 2.5 0 000-5H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                                    ) : (
+                                        <>
+                                            <path d="M4 2.5A2.5 2.5 0 014 7.5H3a2.5 2.5 0 010-5h1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                                            <path d="M8 4.5A2.5 2.5 0 018 9.5h1a2.5 2.5 0 000-5H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                                        </>
+                                    )}
+                                </svg>
+                                {marginLinked ? '联动' : '独立'}
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                            <input type="number" className="input" value={getM('Top')} step={0.5} onChange={e => setM('Top', e.target.value)} style={miniInputSt} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
+                                <input type="number" className="input" value={getM('Left')} step={0.5} onChange={e => setM('Left', e.target.value)} style={miniInputSt} />
+                                <div style={{
+                                    flex: 1, height: '32px',
+                                    border: '1.5px dashed var(--color-border)', borderRadius: '4px',
+                                    background: 'var(--color-bg-secondary)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '9px', color: 'var(--color-text-tertiary)', letterSpacing: '0.03em',
+                                }}>
+                                    画面边缘
+                                </div>
+                                <input type="number" className="input" value={getM('Right')} step={0.5} onChange={e => setM('Right', e.target.value)} style={miniInputSt} />
+                            </div>
+                            <input type="number" className="input" value={getM('Bottom')} step={0.5} onChange={e => setM('Bottom', e.target.value)} style={miniInputSt} />
+                        </div>
                     </div>
 
                     <div style={sectionSt}>

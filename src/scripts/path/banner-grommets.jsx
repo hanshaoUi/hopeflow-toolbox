@@ -161,29 +161,28 @@
         return Math.round(point.x * 1000) + ',' + Math.round(point.y * 1000);
     }
 
-    function makePlacementBounds(bounds, centerDistance, position) {
-        if (position === 'inside') {
-            if (centerDistance * 2 > bounds.width || centerDistance * 2 > bounds.height) {
-                return null;
-            }
-            return makeBounds(
-                bounds.left + centerDistance,
-                bounds.top - centerDistance,
-                bounds.right - centerDistance,
-                bounds.bottom + centerDistance
-            );
+    // margin > 0 = inward, margin < 0 = outward; no separate position toggle needed
+    function makePlacementBounds(bounds, radius, margins) {
+        var dTop    = radius + margins.top;
+        var dRight  = radius + margins.right;
+        var dBottom = radius + margins.bottom;
+        var dLeft   = radius + margins.left;
+
+        // Reject only when positive margins collapse the usable area to nothing
+        if (dLeft + dRight > bounds.width || dTop + dBottom > bounds.height) {
+            return null;
         }
 
         return makeBounds(
-            bounds.left - centerDistance,
-            bounds.top + centerDistance,
-            bounds.right + centerDistance,
-            bounds.bottom - centerDistance
+            bounds.left   + dLeft,
+            bounds.top    - dTop,
+            bounds.right  - dRight,
+            bounds.bottom + dBottom
         );
     }
 
     function createCircles(layer, bounds, args) {
-        var placementBounds = makePlacementBounds(bounds, args.centerDistance, args.position);
+        var placementBounds = makePlacementBounds(bounds, args.radius, args.margins);
         if (!placementBounds) return { created: 0, skipped: true };
 
         var counts = getCountsForBounds(placementBounds, args);
@@ -260,7 +259,15 @@
 
     var diameter = diameterMM * mmToPt;
     var radius = diameter / 2;
-    var margin = Math.max(0, numberArg(rawArgs.margin, 0)) * mmToPt;
+    // Support per-side margins; fall back to legacy single `margin` for backward compat.
+    // Negative values move circles outside the boundary.
+    var legacyMargin = numberArg(rawArgs.margin, 0);
+    var margins = {
+        top:    numberArg(rawArgs.marginTop,    legacyMargin) * mmToPt,
+        right:  numberArg(rawArgs.marginRight,  legacyMargin) * mmToPt,
+        bottom: numberArg(rawArgs.marginBottom, legacyMargin) * mmToPt,
+        left:   numberArg(rawArgs.marginLeft,   legacyMargin) * mmToPt,
+    };
     var args = {
         mmToPt: mmToPt,
         countMode: rawArgs.countMode || 'count',
@@ -275,8 +282,7 @@
         leftCount: rawArgs.leftCount,
         diameter: diameter,
         radius: radius,
-        centerDistance: radius + margin,
-        position: rawArgs.position === 'outside' ? 'outside' : 'inside',
+        margins: margins,
         appearance: rawArgs.appearance || 'fill',
         strokeWidth: Math.max(0, numberArg(rawArgs.strokeWidth, 0.3)) * mmToPt,
         color: getColor(rawArgs)
