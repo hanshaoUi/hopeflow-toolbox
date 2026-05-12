@@ -348,13 +348,8 @@ export class CEPBridge implements BridgeAPI {
     const safeScriptPath = this.encodeNonAsciiForEvalScript(this.escapeExtendScript(scriptPath || ''));
     // JSON.stringify produces a string safe for JS parsing; use it as-is for the args object.
     const argsJson = JSON.stringify(args || {});
-
-    // JSXBIN files must be executed via eval() — embedding them directly breaks the binary format.
-    const isJSXBIN = content.trimStart().startsWith('@JSXBIN@');
-    const scriptBlock = isJSXBIN
-      ? `eval(${JSON.stringify(content)});`
-      : `${this.encodeNonAsciiForEvalScript(content)}`;
-
+    // Encode non-ASCII (e.g. Chinese) characters as \uXXXX to survive CEP evalScript transmission.
+    const safeContent = this.encodeNonAsciiForEvalScript(content);
     return `
       (function() {
         try {
@@ -374,7 +369,7 @@ export class CEPBridge implements BridgeAPI {
           var __ARGS__ = __ARGS_OBJ__;
 
           // Execute the actual script content
-          ${scriptBlock}
+          ${safeContent}
 
           // Many scripts store the real payload in $.hopeflow._lastResult.
           if (typeof $.hopeflow !== 'undefined' && $.hopeflow._lastResult) {
