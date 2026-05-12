@@ -4,7 +4,7 @@ export const batchScripts: ScriptMetadata[] = [
   {
     id: 'batch-draw-rectangles',
     name: '批量画矩形',
-    description: '按指定宽度列表或比例一次性绘制一排等高矩形，支持多行',
+    description: '按指定宽度列表一次性绘制一排等高矩形，支持多行',
     category: 'batch',
     icon: 'rectangle',
     persistParams: true,
@@ -13,7 +13,7 @@ export const batchScripts: ScriptMetadata[] = [
         name: 'widths',
         type: 'string',
         label: '宽度列表',
-        description: '绝对值（逗号分隔，如 100,200,150）或比例（冒号分隔，如 1:2:1）',
+        description: '宽度值，单位 mm，可添加多个矩形块',
         default: '100,200,100',
         required: true,
       },
@@ -34,15 +34,6 @@ export const batchScripts: ScriptMetadata[] = [
         step: 0.5,
       },
       {
-        name: 'totalWidth',
-        type: 'number',
-        label: '总宽度 (mm，比例模式)',
-        description: '仅比例模式有效，留 0 自动取画板宽度',
-        default: 0,
-        min: 0,
-        step: 1,
-      },
-      {
         name: 'rows',
         type: 'number',
         label: '行数',
@@ -57,14 +48,6 @@ export const batchScripts: ScriptMetadata[] = [
         default: 5,
         min: 0,
         step: 0.5,
-      },
-      {
-        name: 'strokeWidth',
-        type: 'number',
-        label: '描边粗细 (pt)',
-        default: 0.5,
-        min: 0,
-        step: 0.25,
       },
       {
         name: 'filled',

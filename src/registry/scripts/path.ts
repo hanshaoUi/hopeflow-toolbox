@@ -425,6 +425,14 @@ export const pathScripts: ScriptMetadata[] = [
     ],
   },
   {
+    id: 'sashimi-cut',
+    name: '超级分割',
+    description: '用一条或多条直线切割选中的路径，支持水平、垂直、45 度及任意角度切割线。',
+    category: 'path',
+    icon: 'crop',
+    badges: ['New'],
+  },
+  {
     id: 'draw-selection-bounds',
     name: '绘制定界框',
     description: '将当前选区的边界线、中心点、锚点及控制柄绘制为可编辑矢量路径，输出到独立图层「limitesSelection」。',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScriptPanelProps } from './types';
 import { CreateGuidesPanel } from './CreateGuidesPanel';
+import { BatchDrawRectanglesPanel } from './BatchDrawRectanglesPanel';
 
 // Standalone panels: manage their own state entirely, need no props from ScriptCard
 import { LargeScaleExport } from '../components/LargeScaleExport';
@@ -15,6 +16,7 @@ import { ColorSeparatorPanel } from '../components/ColorSeparatorPanel';
 // Panels that receive params/execution props from ScriptCard
 export const PARAM_PANELS: Record<string, React.FC<ScriptPanelProps>> = {
     'create-guides': CreateGuidesPanel,
+    'batch-draw-rectangles': BatchDrawRectanglesPanel,
 };
 
 // Panels that are fully self-contained (no props needed)

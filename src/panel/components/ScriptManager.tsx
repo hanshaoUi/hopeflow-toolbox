@@ -26,9 +26,35 @@ interface ManagedScript {
     description?: string;
 }
 
-const isScriptFile = (filePath: string) => SCRIPT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+const normalizeCepPath = (rawPath: string): string => {
+    const value = String(rawPath || '').trim();
+    if (!value) return '';
+
+    if (/^file:\/\//i.test(value)) {
+        try {
+            const url = new URL(value);
+            const pathname = decodeURIComponent(url.pathname);
+            if (process.platform === 'win32' && /^\/[A-Za-z]:\//.test(pathname)) {
+                return pathname.slice(1);
+            }
+            return pathname;
+        } catch {
+            const stripped = value.replace(/^file:\/\/(?:localhost)?/i, '');
+            try { return decodeURIComponent(stripped); } catch { return stripped; }
+        }
+    }
+
+    return value;
+};
+
+const isScriptFile = (filePath: string) => SCRIPT_EXTENSIONS.has(path.extname(normalizeCepPath(filePath)).toLowerCase());
 const normalizeScriptName = (filePath: string) => path.basename(filePath, path.extname(filePath));
 const toExtendScriptString = (value: string) => JSON.stringify(value.replace(/\\/g, '/'));
+
+const getDisplayName = (filePath: string, fallback: string) => {
+    const base = path.basename(filePath);
+    return base || fallback;
+};
 
 const createEvalFileLauncher = (scriptPath: string) => `
 var __USER_SCRIPT_FILE__ = File(${toExtendScriptString(scriptPath)});
@@ -78,9 +104,11 @@ const readDescription = (filePath: string): string => {
 
 function scanFolder(folderPath: string, folderName: string, depth = 0): ManagedScript[] {
     if (depth > 6) return [];
+    const normalizedFolderPath = normalizeCepPath(folderPath);
+    if (!normalizedFolderPath) return [];
     try {
-        return fs.readdirSync(folderPath).flatMap((entry) => {
-            const fullPath = path.join(folderPath, entry);
+        return fs.readdirSync(normalizedFolderPath).flatMap((entry) => {
+            const fullPath = path.join(normalizedFolderPath, entry);
             try {
                 const stat = fs.statSync(fullPath);
                 if (stat.isDirectory()) return scanFolder(fullPath, folderName, depth + 1);
@@ -133,8 +161,30 @@ interface ContextMenuState {
 
 export const ScriptManager: React.FC = () => {
     const { settings, update } = useSettings();
-    const scriptFolders = settings.scriptFolders || [];
-    const uploadedScripts = settings.uploadedScripts || [];
+    const scriptFolders = useMemo(() => {
+        const unique = new Map<string, { name: string; path: string }>();
+        (settings.scriptFolders || []).forEach((folder) => {
+            const folderPath = normalizeCepPath(folder.path);
+            if (!folderPath) return;
+            unique.set(folderPath, {
+                name: getDisplayName(folderPath, folder.name || '脚本文件夹'),
+                path: folderPath,
+            });
+        });
+        return Array.from(unique.values());
+    }, [settings.scriptFolders]);
+    const uploadedScripts = useMemo(() => {
+        const unique = new Map<string, { name: string; path: string }>();
+        (settings.uploadedScripts || []).forEach((script) => {
+            const scriptPath = normalizeCepPath(script.path);
+            if (!scriptPath) return;
+            unique.set(scriptPath, {
+                name: normalizeScriptName(scriptPath) || script.name || 'script',
+                path: scriptPath,
+            });
+        });
+        return Array.from(unique.values());
+    }, [settings.uploadedScripts]);
     const scriptMeta = settings.scriptMeta || {};
 
     const [scripts, setScripts] = useState<ManagedScript[]>([]);
@@ -231,9 +281,9 @@ export const ScriptManager: React.FC = () => {
         if (!cep?.fs) { window.alert('当前环境不支持目录选择。'); return; }
         const result = cep.fs.showOpenDialog(false, true, '选择脚本文件夹', '', null);
         if (result.err !== cep.fs.NO_ERROR || !Array.isArray(result.data) || result.data.length === 0) return;
-        const folderPath = String(result.data[0] || '');
+        const folderPath = normalizeCepPath(String(result.data[0] || ''));
         if (!folderPath || scriptFolders.some((f) => f.path === folderPath)) return;
-        update('scriptFolders', [...scriptFolders, { name: path.basename(folderPath) || '脚本文件夹', path: folderPath }]);
+        update('scriptFolders', [...scriptFolders, { name: getDisplayName(folderPath, '脚本文件夹'), path: folderPath }]);
     };
 
     const uploadScript = () => {
@@ -245,9 +295,9 @@ export const ScriptManager: React.FC = () => {
         const nextUploads = [...uploadedScripts];
         const rejected: string[] = [];
         result.data.forEach((item: string) => {
-            const sourcePath = String(item || '');
+            const sourcePath = normalizeCepPath(String(item || ''));
             if (!sourcePath || !isScriptFile(sourcePath) || !fs.existsSync(sourcePath)) {
-                rejected.push(path.basename(sourcePath || 'unknown'));
+                rejected.push(getDisplayName(sourcePath, 'unknown'));
                 return;
             }
             const targetPath = makeUniqueUploadPath(sourcePath);
