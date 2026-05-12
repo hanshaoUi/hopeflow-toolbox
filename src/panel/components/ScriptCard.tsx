@@ -1987,7 +1987,41 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                     {script.description && <InfoIcon tooltip={script.description} />}
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex items-center" style={{ gap: '4px' }}>
+                    {/* Favorite Button */}
+                    {(() => {
+                        const isFavorited = settings.scriptMeta[script.id]?.favorited ?? false;
+                        return (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const current = settings.scriptMeta[script.id] || { count: 0, lastRun: 0, favorited: false, tags: [] };
+                                    update('scriptMeta', {
+                                        ...settings.scriptMeta,
+                                        [script.id]: { ...current, favorited: !current.favorited },
+                                    });
+                                }}
+                                title={isFavorited ? '取消收藏' : '收藏（快速访问）'}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: isFavorited ? '#FFCF4D' : 'var(--color-text-tertiary)',
+                                    opacity: isFavorited ? 1 : (isHovered ? 0.6 : 0.2),
+                                    transition: 'color 0.15s ease, opacity 0.15s ease',
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill={isFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                </svg>
+                            </button>
+                        );
+                    })()}
                     {isExpandable ? (
                         <div style={{
                             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
