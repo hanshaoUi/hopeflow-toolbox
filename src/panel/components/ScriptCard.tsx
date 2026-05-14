@@ -448,7 +448,16 @@ interface InlineResultMessage {
 // Scripts that use undo-based preview (manual trigger)
 const UNDO_PREVIEW_SCRIPTS: Record<string, string> = {
     'banner-grommets': './src/scripts/path/banner-grommets.jsx',
+    'hexagon-grid': './src/scripts/effects/hexagon-grid.jsx',
+    'vector-halftone': './src/scripts/effects/vector-halftone.jsx',
+    'perlin-flow': './src/scripts/effects/perlin-flow.jsx',
 };
+
+const LIVE_UNDO_PREVIEW_SCRIPTS = new Set([
+    'hexagon-grid',
+    'vector-halftone',
+    'perlin-flow',
+]);
 
 // Scripts with specialized UIs
 const SPECIAL_UI_SCRIPTS = new Set([
@@ -460,6 +469,7 @@ const SPECIAL_UI_SCRIPTS = new Set([
     'lock-unlock',
     'create-artboards-from-selection',
     'fit-artboard-to-selection',
+    'mask-artboards',
     'batch-rename-artboards',
     'round-corners',
     'random-scatter',
@@ -503,6 +513,9 @@ const NEEDS_UNIT_SCRIPTS = new Set([
     'create-polygon',
     'round-corners',
     'random-scatter',
+    'hexagon-grid',
+    'vector-halftone',
+    'perlin-flow',
     'batch-rename-artboards',
     'auto-group-by-intersection'
 ]);
@@ -542,7 +555,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                     initialParams[param.name] = param.default;
                 }
             });
-            if (script.persistParams) {
+            if (script.persistParams !== false) {
                 try {
                     const stored = settings.scriptParams[script.id];
                     if (stored) {
@@ -557,9 +570,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         }
     }, [script.id]); // Only re-initialize if script changes
 
-    // Persist params to settings for scripts with persistParams
+    // Persist params to settings for scripts unless explicitly disabled.
     useEffect(() => {
-        if (!script.persistParams || !script.params) return;
+        if (script.persistParams === false || !script.params) return;
         const toSave: Record<string, any> = {};
         script.params.forEach(p => {
             if (params[p.name] !== undefined) toSave[p.name] = params[p.name];
@@ -938,6 +951,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
 
     // --- Undo-based manual preview (rich-glitch / metaball) ---
     const undoPreviewActiveRef = useRef(false);
+    const undoPreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Serialise all undo-preview operations so only one undo/execute runs at a time
     const undoPreviewChainRef = useRef<Promise<void>>(Promise.resolve());
 
@@ -960,6 +974,20 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
             }
         });
     }, [script.id, params]);
+
+    useEffect(() => {
+        if (!LIVE_UNDO_PREVIEW_SCRIPTS.has(script.id)) return;
+        if (!isExpanded) return;
+
+        if (undoPreviewTimerRef.current) clearTimeout(undoPreviewTimerRef.current);
+        undoPreviewTimerRef.current = setTimeout(() => {
+            handleUndoPreview();
+        }, 450);
+
+        return () => {
+            if (undoPreviewTimerRef.current) clearTimeout(undoPreviewTimerRef.current);
+        };
+    }, [script.id, isExpanded, params, handleUndoPreview]);
 
     // Cleanup undo-based preview when card collapses
     useEffect(() => {
@@ -1353,6 +1381,24 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const executeScriptWithAccess = useCallback(async (overrideParams: Record<string, any>) => {
         return await executeScript(script, overrideParams);
     }, [executeScript, script]);
+
+    const normalizeParamsForExecution = useCallback((rawParams: Record<string, any>) => {
+        if (!script.params) return { ...rawParams };
+        const normalized = { ...rawParams };
+        script.params.forEach((param) => {
+            if (param.type !== 'number') return;
+            const value = normalized[param.name];
+            if (value === '' || value === null) {
+                delete normalized[param.name];
+                return;
+            }
+            if (value !== undefined && typeof value !== 'number') {
+                const numericValue = Number(value);
+                if (Number.isFinite(numericValue)) normalized[param.name] = numericValue;
+            }
+        });
+        return normalized;
+    }, [script.params]);
 
     const getInlineSuccessMessage = useCallback((result: any) => {
         const data = result?.data;
@@ -1884,9 +1930,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     const handleExecute = async () => {
         setError(null);
         setInlineResultMessage(null);
+        const finalParams = normalizeParamsForExecution(params);
 
         if (script.params) {
-            const validationError = validateParams(script, params);
+            const validationError = validateParams(script, finalParams);
             if (validationError) {
                 setError(validationError);
                 return;
@@ -1895,7 +1942,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
 
         // If undo-based preview is active, wait for any in-flight preview to finish,
         // then inject shouldUndo so the final execute undoes the preview first.
-        const finalParams = { ...params };
         if (UNDO_PREVIEW_SCRIPTS[script.id]) {
             await undoPreviewChainRef.current;
             if (undoPreviewActiveRef.current) {
@@ -2166,6 +2212,186 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     // --- Special UI renderers (no duplicate titles: header row already shows name + info) ---
 
     function renderSpecialUI() {
+        if (script.id === 'mask-artboards') {
+            const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
+            const targetParam = paramMap.get('target');
+            const artboardsParam = paramMap.get('artboards');
+            const bleedModeParam = paramMap.get('bleedMode');
+            const bleedUnitParam = paramMap.get('bleedUnit');
+            const target = String(params['target'] || 'current');
+            const bleedMode = String(params['bleedMode'] || 'fixed');
+            const sameBleed = params['sameBleed'] !== false && params['sameBleed'] !== 'false';
+            const valueLabel = bleedMode === 'relative' ? '短边比例 (%)' : `外扩/内缩 (${params['bleedUnit'] || 'mm'})`;
+            const hintText = bleedMode === 'relative'
+                ? '以画板短边为基准。5 表示向外扩 5%，-5 表示向内缩 5%。'
+                : '以画板边界为基准。正数向外扩，负数向内缩，0 表示贴齐画板。';
+
+            const setParam = (name: string, value: any) => setParams((prev) => ({ ...prev, [name]: value }));
+            const setUniformValue = (value: number) => setParams((prev) => ({
+                ...prev,
+                top: value,
+                bottom: value,
+                left: value,
+                right: value,
+            }));
+            const toggleSameBleed = (nextSame: boolean) => setParams((prev) => {
+                const top = prev.top ?? 0;
+                return nextSame
+                    ? { ...prev, sameBleed: true, bottom: top, left: top, right: top }
+                    : { ...prev, sameBleed: false };
+            });
+            const numberField = (name: string, label: string) => (
+                <div>
+                    <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                        {label}
+                    </label>
+                    <input
+                        type="number"
+                        className="input"
+                        value={params[name] ?? 0}
+                        step={0.5}
+                        onChange={(e) => setParam(name, e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    />
+                </div>
+            );
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: target === 'custom' ? '1fr 1fr' : '1fr',
+                        gap: '8px 10px',
+                    }}>
+                        {targetParam && (
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                    套哪些画板
+                                </label>
+                                {renderParamInput(targetParam, params, setParams)}
+                            </div>
+                        )}
+                        {target === 'custom' && artboardsParam && (
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                    画板编号
+                                </label>
+                                {renderParamInput(artboardsParam, params, setParams)}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: bleedMode === 'fixed' ? '1fr 1fr' : '1fr',
+                        gap: '8px 10px',
+                    }}>
+                        {bleedModeParam && (
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                    蒙版尺寸来源
+                                </label>
+                                {renderParamInput(bleedModeParam, params, setParams)}
+                            </div>
+                        )}
+                        {bleedMode === 'fixed' && bleedUnitParam && (
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                    数值单位
+                                </label>
+                                {renderParamInput(bleedUnitParam, params, setParams)}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 10,
+                        background: 'var(--color-bg-secondary)',
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                            <div>
+                                <div style={{ fontSize: 12, color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                                    蒙版框相对画板的偏移
+                                </div>
+                                <div style={{ fontSize: 10, lineHeight: 1.35, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                                    {hintText}
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                <span style={chipStyle(sameBleed)} onClick={() => toggleSameBleed(true)}>四边统一</span>
+                                <span style={chipStyle(!sameBleed)} onClick={() => toggleSameBleed(false)}>分别设置</span>
+                            </div>
+                        </div>
+
+                        {sameBleed ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'end' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                        {valueLabel}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="input"
+                                        value={params['top'] ?? 0}
+                                        step={0.5}
+                                        onChange={(e) => setUniformValue(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, paddingBottom: 2 }}>
+                                    {[0, bleedMode === 'relative' ? 5 : 3, bleedMode === 'relative' ? -5 : -3].map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="btn btn-sm"
+                                            onClick={() => setUniformValue(value)}
+                                            style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr 1fr',
+                                gridTemplateRows: 'auto auto auto',
+                                gap: 8,
+                                alignItems: 'center',
+                            }}>
+                                <div />
+                                {numberField('top', '上边')}
+                                <div />
+                                {numberField('left', '左边')}
+                                <div style={{
+                                    height: 64,
+                                    border: '1px dashed var(--color-border-hover)',
+                                    borderRadius: 4,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--color-text-tertiary)',
+                                    fontSize: 11,
+                                    background: 'var(--color-bg-tertiary)',
+                                }}>
+                                    画板
+                                </div>
+                                {numberField('right', '右边')}
+                                <div />
+                                {numberField('bottom', '下边')}
+                                <div />
+                            </div>
+                        )}
+                    </div>
+
+                    <SuccessButton className="btn btn-primary" onClick={handleExecute} disabled={isExecuting} style={{ width: '100%' }}>
+                        {isExecuting ? <><span className="spinner" /> 执行中...</> : '执行'}
+                    </SuccessButton>
+                </div>
+            );
+        }
+
         if (script.id === 'extract-image-contour') {
             const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
             const fieldNames = ['simplify', 'smoothAmount', 'stroke', 'strokeUnit', 'position', 'container'];
@@ -6073,6 +6299,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         if (!hasParams) return null;
 
         const allParams = script.params!.filter((p) => {
+            if (script.id === 'mask-artboards') {
+                const sameBleed = params.sameBleed !== false && params.sameBleed !== 'false';
+                if (params.target !== 'custom' && p.name === 'artboards') return false;
+                if (params.bleedMode === 'relative' && p.name === 'bleedUnit') return false;
+                if (sameBleed && (p.name === 'bottom' || p.name === 'left' || p.name === 'right')) return false;
+                return true;
+            }
             if (script.id !== 'offset-bleed') return true;
             if (params.contourMode !== 'alpha' && p.name.indexOf('alpha') === 0) return false;
             if (params.enableStroke === false && (p.name === 'stroke' || p.name === 'strokeUnit')) return false;
@@ -6125,10 +6358,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
                         {fieldParams.map(p => (
                             <div key={p.name}>
                                 <label style={{ display: 'block', marginBottom: '2px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                                    {p.label}
+                                    {script.id === 'mask-artboards' && p.name === 'top'
+                                        ? (params.sameBleed === false || params.sameBleed === 'false' ? '上边外扩/内缩' : '统一外扩/内缩')
+                                        : p.label}
                                     {showDocumentUnitInLabels && p.type === 'number' && unit ? ` (${unit})` : ''}
                                     {p.required && <span style={{ color: 'var(--color-error)' }}> *</span>}
                                 </label>
+                                {p.description && (
+                                    <p style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', margin: '0 0 4px', lineHeight: 1.35 }}>
+                                        {p.description}
+                                    </p>
+                                )}
                                 {renderParamInput(p, params, setParams)}
                             </div>
                         ))}

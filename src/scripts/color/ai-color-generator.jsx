@@ -8,7 +8,6 @@
 
     var args = $.hopeflow.utils.getArgs();
     var MM = 2.834645669;
-    var GAP = 1.2 * MM;
 
     function boolArg(name, fallback) {
         if (typeof args[name] === 'undefined') return fallback;
@@ -46,6 +45,7 @@
         labelWidth: numArg('labelWidth', 12, 1) * MM,
         labelHeight: numArg('labelHeight', 5, 1) * MM,
         cornerRadius: numArg('cornerRadius', 1, 0) * MM,
+        labelGap: numArg('labelGap', 0, 0) * MM,
         direction: strArg('direction', 'h'),
         fontFamily: strArg('fontFamily', 'MicrosoftYaHei'),
         fontSize: numArg('fontSize', 3, 0.5) * MM,
@@ -387,9 +387,9 @@
         for (var i = 0; i < inks.length; i++) {
             var label = addLabel(master, inks[i], x, y);
             if (horizontal) {
-                x += label.width + GAP;
+                x += label.width + config.labelGap;
             } else {
-                y -= label.height + GAP;
+                y -= label.height + config.labelGap;
             }
         }
 
@@ -401,7 +401,7 @@
             var totalFont = getFont();
             if (totalFont) total.textRange.characterAttributes.textFont = totalFont;
             total.left = horizontal ? x : 0;
-            total.top = horizontal ? 0 : y - GAP;
+            total.top = horizontal ? 0 : y - config.labelGap;
             total.moveToBeginning(master);
         }
 

@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getBridge } from '@bridge';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 const fs = require('fs');
 const path = require('path');
@@ -375,18 +376,31 @@ async function exportXlsx(outputPath: string, docName: string, groupMode: GroupM
 }
 
 export const ArtboardSizeTableExport: React.FC = () => {
-    const [groupMode, setGroupMode] = useState<GroupMode>('artboard');
-    const [unit, setUnit] = useState<Unit>('cm');
-    const [scale, setScale] = useState(1);
-    const [precision, setPrecision] = useState(2);
-    const [unitPrice, setUnitPrice] = useState('');
-    const [format, setFormat] = useState<ExportFormat>('xlsx');
-    const [outputLocation, setOutputLocation] = useState<OutputLocation>('document');
+    const savedParams = loadPersistedScriptParams('export-artboard-size-table');
+    const [groupMode, setGroupMode] = useState<GroupMode>(savedParams.groupMode ?? 'artboard');
+    const [unit, setUnit] = useState<Unit>(savedParams.unit ?? 'cm');
+    const [scale, setScale] = useState(savedParams.scale ?? 1);
+    const [precision, setPrecision] = useState(savedParams.precision ?? 2);
+    const [unitPrice, setUnitPrice] = useState(savedParams.unitPrice ?? '');
+    const [format, setFormat] = useState<ExportFormat>(savedParams.format ?? 'xlsx');
+    const [outputLocation, setOutputLocation] = useState<OutputLocation>(savedParams.outputLocation ?? 'document');
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
     const supportsPreview = useMemo(() => format === 'xlsx', [format]);
+
+    useEffect(() => {
+        savePersistedScriptParams('export-artboard-size-table', {
+            groupMode,
+            unit,
+            scale,
+            precision,
+            unitPrice,
+            format,
+            outputLocation,
+        });
+    }, [groupMode, unit, scale, precision, unitPrice, format, outputLocation]);
 
     const handleExport = async () => {
         setIsExporting(true);

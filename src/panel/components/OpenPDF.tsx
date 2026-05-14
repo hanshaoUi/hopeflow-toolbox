@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import fs from 'fs';
 import { getBridge } from '@bridge';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 function getPdfPageCount(filePath: string): number {
     try {
@@ -41,13 +42,19 @@ function getPdfPageCount(filePath: string): number {
 }
 
 export const OpenPDF: React.FC = () => {
-    const [filePath, setFilePath] = useState('');
-    const [fileName, setFileName] = useState('');
-    const [totalPages, setTotalPages] = useState(0);
-    const [fromPage, setFromPage] = useState(1);
-    const [toPage, setToPage] = useState(1);
+    const savedParams = loadPersistedScriptParams('open-pdf');
+    const savedFilePath = savedParams.filePath ?? '';
+    const [filePath, setFilePath] = useState(savedFilePath);
+    const [fileName, setFileName] = useState(savedParams.fileName ?? (savedFilePath ? savedFilePath.split('/').pop() || savedFilePath : ''));
+    const [totalPages, setTotalPages] = useState(savedParams.totalPages ?? (savedFilePath ? getPdfPageCount(savedFilePath) : 0));
+    const [fromPage, setFromPage] = useState(savedParams.fromPage ?? 1);
+    const [toPage, setToPage] = useState(savedParams.toPage ?? (savedFilePath ? getPdfPageCount(savedFilePath) : 1));
     const [status, setStatus] = useState<'idle' | 'executing' | 'done' | 'error'>('idle');
     const [statusText, setStatusText] = useState('');
+
+    useEffect(() => {
+        savePersistedScriptParams('open-pdf', { filePath, fileName, totalPages, fromPage, toPage });
+    }, [filePath, fileName, totalPages, fromPage, toPage]);
 
     const handleSelectFile = () => {
         const win = window as any;

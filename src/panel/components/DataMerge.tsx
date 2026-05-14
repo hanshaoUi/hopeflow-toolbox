@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import fs from 'fs';
 import path from 'path';
 import { getBridge } from '@bridge';
 import * as AIEngine from '../services/ai-engine';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 interface CsvData {
     headers: string[];
@@ -293,31 +294,32 @@ const STEP_LABELS: Record<Step, string> = {
 const STEPS: Step[] = ['source', 'preview', 'mapping', 'execute'];
 
 export const DataMerge: React.FC = () => {
-    const [srcMode, setSrcMode] = useState<'file' | 'gen'>('file');
-    const [csvPath, setCsvPath] = useState('');
-    const [csvDir, setCsvDir] = useState('');
-    const [csvName, setCsvName] = useState('');
+    const savedParams = loadPersistedScriptParams('data-merge');
+    const [srcMode, setSrcMode] = useState<'file' | 'gen'>(savedParams.srcMode ?? 'file');
+    const [csvPath, setCsvPath] = useState(savedParams.csvPath ?? '');
+    const [csvDir, setCsvDir] = useState(savedParams.csvDir ?? '');
+    const [csvName, setCsvName] = useState(savedParams.csvName ?? '');
     const [csv, setCsv] = useState<CsvData | null>(null);
 
-    const [genMode, setGenMode] = useState<'seq' | 'img'>('seq');
-    const [seqCol, setSeqCol] = useState('编号');
-    const [seqCount, setSeqCount] = useState(10);
-    const [seqStart, setSeqStart] = useState(1);
-    const [seqPrefix, setSeqPrefix] = useState('');
-    const [seqSuffix, setSeqSuffix] = useState('');
-    const [seqDigits, setSeqDigits] = useState(3);
-    const [imgDir, setImgDir] = useState('');
-    const [imgExts, setImgExts] = useState(['jpg', 'jpeg', 'png', 'tif', 'tiff', 'psd', 'ai', 'svg']);
+    const [genMode, setGenMode] = useState<'seq' | 'img'>(savedParams.genMode ?? 'seq');
+    const [seqCol, setSeqCol] = useState(savedParams.seqCol ?? '编号');
+    const [seqCount, setSeqCount] = useState(savedParams.seqCount ?? 10);
+    const [seqStart, setSeqStart] = useState(savedParams.seqStart ?? 1);
+    const [seqPrefix, setSeqPrefix] = useState(savedParams.seqPrefix ?? '');
+    const [seqSuffix, setSeqSuffix] = useState(savedParams.seqSuffix ?? '');
+    const [seqDigits, setSeqDigits] = useState(savedParams.seqDigits ?? 3);
+    const [imgDir, setImgDir] = useState(savedParams.imgDir ?? '');
+    const [imgExts, setImgExts] = useState(Array.isArray(savedParams.imgExts) ? savedParams.imgExts : ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'psd', 'ai', 'svg']);
     const [imgFiles, setImgFiles] = useState<string[]>([]);
-    const [imgSeq, setImgSeq] = useState(false);
+    const [imgSeq, setImgSeq] = useState(savedParams.imgSeq ?? false);
 
     const [scan, setScan] = useState<ScanResult | null>(null);
     const [scanning, setScanning] = useState(false);
     const [maps, setMaps] = useState<Mapping[]>([]);
 
-    const [exp, setExp] = useState<ExportSettings>({ format: 'PDF', pdfMode: 'python', outputFolder: '', fileNamePattern: '{#}', dpi: 300 });
-    const [textRules, setTextRules] = useState<TextStyleRule[]>([]);
-    const [exMode, setExMode] = useState<'ds' | 'exp'>('exp');
+    const [exp, setExp] = useState<ExportSettings>(savedParams.exp ?? { format: 'PDF', pdfMode: 'python', outputFolder: '', fileNamePattern: '{#}', dpi: 300 });
+    const [textRules, setTextRules] = useState<TextStyleRule[]>(Array.isArray(savedParams.textRules) ? savedParams.textRules : []);
+    const [exMode, setExMode] = useState<'ds' | 'exp'>(savedParams.exMode ?? 'exp');
     const [busy, setBusy] = useState(false);
     const [prog, setProg] = useState({ c: 0, t: 0 });
     const [msg, setMsg] = useState<{ t: '' | 'ok' | 'err' | 'info'; s: string }>({ t: '', s: '' });
@@ -325,6 +327,28 @@ export const DataMerge: React.FC = () => {
 
     const mapped = maps.filter((item) => item.type !== 'UNMAPPED').length;
     const textColumns = maps.filter((item) => item.type === 'TEXTUAL').map((item) => item.column);
+
+    useEffect(() => {
+        savePersistedScriptParams('data-merge', {
+            srcMode,
+            csvPath,
+            csvDir,
+            csvName,
+            genMode,
+            seqCol,
+            seqCount,
+            seqStart,
+            seqPrefix,
+            seqSuffix,
+            seqDigits,
+            imgDir,
+            imgExts,
+            imgSeq,
+            exp,
+            textRules,
+            exMode,
+        });
+    }, [srcMode, csvPath, csvDir, csvName, genMode, seqCol, seqCount, seqStart, seqPrefix, seqSuffix, seqDigits, imgDir, imgExts, imgSeq, exp, textRules, exMode]);
 
     const reset = useCallback(() => {
         setCsv(null);

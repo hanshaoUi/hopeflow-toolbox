@@ -3,6 +3,7 @@ import { getBridge } from '@bridge';
 import * as AIEngine from '../services/ai-engine';
 import { useSettings } from '../hooks/useSettings';
 import { Icon } from './Icon';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 const path = require('path');
 const os = require('os');
@@ -17,7 +18,8 @@ interface AIEnhanceProps {
 
 export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
     const { settings, update } = useSettings();
-    const [mode, setMode] = useState<EnhanceMode>('upscale');
+    const savedParams = loadPersistedScriptParams('ai-enhance');
+    const [mode, setMode] = useState<EnhanceMode>(savedParams.mode ?? 'upscale');
 
     const scale = settings.ai.defaultScale as 2 | 4;
     const setScale = (s: 2 | 4) => update('ai', { ...settings.ai, defaultScale: s });
@@ -35,6 +37,10 @@ export const AIEnhance: React.FC<AIEnhanceProps> = ({ onClose }) => {
     const [rembgAvailable, setRembgAvailable] = useState(false);
     const [realesrganAvailable, setRealesrganAvailable] = useState(false);
     const [isInstallingRealESRGAN, setIsInstallingRealESRGAN] = useState(false);
+
+    useEffect(() => {
+        savePersistedScriptParams('ai-enhance', { mode });
+    }, [mode]);
 
     // 检查引擎状态
     useEffect(() => {

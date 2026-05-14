@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getBridge } from '@bridge';
 import { stitchImages, TileInfo } from '../utils/image-stitcher';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 const fs = require('fs');
 const path = require('path');
@@ -55,10 +56,11 @@ const sanitizeFileName = (value: string) =>
     (value || 'export').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim() || 'export';
 
 export const LargeScaleExport: React.FC = () => {
-    const [scale, setScale] = useState(10);
-    const [selectedDpi, setSelectedDpi] = useState(72);
-    const [customDpi, setCustomDpi] = useState(100);
-    const [format, setFormat] = useState('JPEG');
+    const savedParams = loadPersistedScriptParams('export-large-scale');
+    const [scale, setScale] = useState(savedParams.scale ?? 10);
+    const [selectedDpi, setSelectedDpi] = useState(savedParams.selectedDpi ?? 72);
+    const [customDpi, setCustomDpi] = useState(savedParams.customDpi ?? 100);
+    const [format, setFormat] = useState(savedParams.format ?? 'JPEG');
     const [info, setInfo] = useState<ExportInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -66,6 +68,10 @@ export const LargeScaleExport: React.FC = () => {
     const [success, setSuccess] = useState<string | null>(null);
 
     const actualDpi = selectedDpi === 0 ? customDpi : selectedDpi;
+
+    useEffect(() => {
+        savePersistedScriptParams('export-large-scale', { scale, selectedDpi, customDpi, format });
+    }, [scale, selectedDpi, customDpi, format]);
 
     // Fetch preview from JSX
     const fetchPreview = useCallback(async () => {

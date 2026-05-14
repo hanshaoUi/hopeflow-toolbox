@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBridge } from '@bridge';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 interface SplitSegmentInfo {
     index: number;
@@ -85,19 +86,20 @@ const CompositionInput = ({ value, onChange, ...props }: any) => {
 };
 
 export const SplitOverlapArtboards: React.FC = () => {
-    const [direction, setDirection] = useState<'vertical' | 'horizontal'>('vertical');
-    const [scale, setScale] = useState(1);
-    const [tileSize, setTileSize] = useState(1182);
-    const [overlap, setOverlap] = useState(25);
-    const [bleed, setBleed] = useState(0);
-    const [margin, setMargin] = useState(0);
-    const [clearGenerated, setClearGenerated] = useState(true);
-    const [namePattern, setNamePattern] = useState('');
-    const [prefix, setPrefix] = useState('');
-    const [suffix, setSuffix] = useState('');
-    const [startNum, setStartNum] = useState(1);
-    const [includeSize, setIncludeSize] = useState(true);
-    const [sizeUnit, setSizeUnit] = useState<'mm' | 'cm' | 'pt' | 'px' | 'in'>('mm');
+    const savedParams = loadPersistedScriptParams('split-overlap-artboards');
+    const [direction, setDirection] = useState<'vertical' | 'horizontal'>(savedParams.direction ?? 'vertical');
+    const [scale, setScale] = useState<number>(savedParams.scale ?? 1);
+    const [tileSize, setTileSize] = useState<number>(savedParams.tileSize ?? 1182);
+    const [overlap, setOverlap] = useState<number>(savedParams.overlap ?? 25);
+    const [bleed, setBleed] = useState<number>(savedParams.bleed ?? 0);
+    const [margin, setMargin] = useState<number>(savedParams.margin ?? 0);
+    const [clearGenerated, setClearGenerated] = useState<boolean>(savedParams.clearGenerated ?? true);
+    const [namePattern, setNamePattern] = useState<string>(savedParams.namePattern ?? '');
+    const [prefix, setPrefix] = useState<string>(savedParams.prefix ?? '');
+    const [suffix, setSuffix] = useState<string>(savedParams.suffix ?? '');
+    const [startNum, setStartNum] = useState<number>(savedParams.startNum ?? 1);
+    const [includeSize, setIncludeSize] = useState<boolean>(savedParams.includeSize ?? true);
+    const [sizeUnit, setSizeUnit] = useState<'mm' | 'cm' | 'pt' | 'px' | 'in'>(savedParams.sizeUnit ?? 'mm');
     const [info, setInfo] = useState<SplitPreviewInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
@@ -122,6 +124,10 @@ export const SplitOverlapArtboards: React.FC = () => {
         }),
         [bleed, clearGenerated, direction, includeSize, margin, namePattern, overlap, prefix, scale, sizeUnit, startNum, suffix, tileSize]
     );
+
+    useEffect(() => {
+        savePersistedScriptParams('split-overlap-artboards', params);
+    }, [params]);
 
     const runScript = useCallback(async (mode: 'preview' | 'create' | 'clear-preview' | 'clear-generated') => {
         const bridge = await getBridge();

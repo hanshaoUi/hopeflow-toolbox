@@ -9,6 +9,75 @@ type Direction = 'h' | 'v';
 type Order = 'cmyk-first' | 'spot-first';
 type Placement = 'center' | 'topleft' | 'manual';
 
+type ColorGeneratorParams = {
+    cmykMode: CmykMode;
+    cmykC: boolean;
+    cmykM: boolean;
+    cmykY: boolean;
+    cmykK: boolean;
+    labelLang: LabelLang;
+    spotMode: SpotMode;
+    spotNames: string;
+    simplifyPantone: boolean;
+    style: LabelStyle;
+    labelWidth: number;
+    labelHeight: number;
+    cornerRadius: number;
+    labelGap: number;
+    direction: Direction;
+    fontFamily: string;
+    fontSize: number;
+    order: Order;
+    placement: Placement;
+    autoSelect: boolean;
+    groupItems: boolean;
+    showInkTotal: boolean;
+    convertToOutlines: boolean;
+};
+
+const SCRIPT_ID = 'ai-color-generator';
+const STORAGE_KEY = 'hf_ai_color_generator_params';
+
+const DEFAULT_PARAMS: ColorGeneratorParams = {
+    cmykMode: 'all',
+    cmykC: true,
+    cmykM: true,
+    cmykY: true,
+    cmykK: true,
+    labelLang: 'both',
+    spotMode: 'all',
+    spotNames: '',
+    simplifyPantone: true,
+    style: 'rect',
+    labelWidth: 12,
+    labelHeight: 5,
+    cornerRadius: 1,
+    labelGap: 0,
+    direction: 'h',
+    fontFamily: 'MicrosoftYaHei',
+    fontSize: 3,
+    order: 'cmyk-first',
+    placement: 'center',
+    autoSelect: true,
+    groupItems: true,
+    showInkTotal: false,
+    convertToOutlines: false,
+};
+
+function loadSavedParams(): ColorGeneratorParams {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) return { ...DEFAULT_PARAMS, ...JSON.parse(stored) };
+    } catch { }
+    return DEFAULT_PARAMS;
+}
+
+function saveParams(params: ColorGeneratorParams) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+    } catch { }
+}
+
 const panelStyle: React.CSSProperties = {
     padding: '10px',
     display: 'flex',
@@ -189,30 +258,33 @@ const SelectField: React.FC<{
 );
 
 export const ColorSeparatorPanel: React.FC = () => {
-    const [cmykMode, setCmykMode] = useState<CmykMode>('all');
-    const [cmykC, setCmykC] = useState(true);
-    const [cmykM, setCmykM] = useState(true);
-    const [cmykY, setCmykY] = useState(true);
-    const [cmykK, setCmykK] = useState(true);
-    const [labelLang, setLabelLang] = useState<LabelLang>('both');
-    const [spotMode, setSpotMode] = useState<SpotMode>('all');
-    const [spotNames, setSpotNames] = useState('');
-    const [simplifyPantone, setSimplifyPantone] = useState(true);
+    const [savedParams] = useState<ColorGeneratorParams>(loadSavedParams);
 
-    const [style, setStyle] = useState<LabelStyle>('rect');
-    const [labelWidth, setW] = useState(12);
-    const [labelHeight, setH] = useState(5);
-    const [cornerRadius, setR] = useState(1);
-    const [direction, setDirection] = useState<Direction>('h');
-    const [fontFamily, setFont] = useState('MicrosoftYaHei');
-    const [fontSize, setFontSize] = useState(3);
+    const [cmykMode, setCmykMode] = useState<CmykMode>(savedParams.cmykMode);
+    const [cmykC, setCmykC] = useState(savedParams.cmykC);
+    const [cmykM, setCmykM] = useState(savedParams.cmykM);
+    const [cmykY, setCmykY] = useState(savedParams.cmykY);
+    const [cmykK, setCmykK] = useState(savedParams.cmykK);
+    const [labelLang, setLabelLang] = useState<LabelLang>(savedParams.labelLang);
+    const [spotMode, setSpotMode] = useState<SpotMode>(savedParams.spotMode);
+    const [spotNames, setSpotNames] = useState(savedParams.spotNames);
+    const [simplifyPantone, setSimplifyPantone] = useState(savedParams.simplifyPantone);
 
-    const [order, setOrder] = useState<Order>('cmyk-first');
-    const [placement, setPlacement] = useState<Placement>('center');
-    const [autoSelect, setSelect] = useState(true);
-    const [groupItems, setGroup] = useState(true);
-    const [showInkTotal, setTotal] = useState(false);
-    const [convertOL, setOutlines] = useState(false);
+    const [style, setStyle] = useState<LabelStyle>(savedParams.style);
+    const [labelWidth, setW] = useState(savedParams.labelWidth);
+    const [labelHeight, setH] = useState(savedParams.labelHeight);
+    const [cornerRadius, setR] = useState(savedParams.cornerRadius);
+    const [labelGap, setGap] = useState(savedParams.labelGap);
+    const [direction, setDirection] = useState<Direction>(savedParams.direction);
+    const [fontFamily, setFont] = useState(savedParams.fontFamily);
+    const [fontSize, setFontSize] = useState(savedParams.fontSize);
+
+    const [order, setOrder] = useState<Order>(savedParams.order);
+    const [placement, setPlacement] = useState<Placement>(savedParams.placement);
+    const [autoSelect, setSelect] = useState(savedParams.autoSelect);
+    const [groupItems, setGroup] = useState(savedParams.groupItems);
+    const [showInkTotal, setTotal] = useState(savedParams.showInkTotal);
+    const [convertOL, setOutlines] = useState(savedParams.convertToOutlines);
 
     const [running, setRunning] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
@@ -232,6 +304,7 @@ export const ColorSeparatorPanel: React.FC = () => {
         setW(12);
         setH(5);
         setR(1);
+        setGap(0);
         setDirection('h');
         setFont('MicrosoftYaHei');
         setFontSize(3);
@@ -249,35 +322,38 @@ export const ColorSeparatorPanel: React.FC = () => {
         setRunning(true);
         setMsg(null);
         setErr(null);
+        const currentParams: ColorGeneratorParams = {
+            cmykMode,
+            cmykC,
+            cmykM,
+            cmykY,
+            cmykK,
+            labelLang,
+            spotMode,
+            spotNames,
+            simplifyPantone,
+            style,
+            labelWidth,
+            labelHeight,
+            cornerRadius,
+            labelGap,
+            direction,
+            fontFamily,
+            fontSize,
+            order,
+            placement,
+            autoSelect,
+            groupItems,
+            showInkTotal,
+            convertToOutlines: convertOL,
+        };
+        saveParams(currentParams);
         try {
             const bridge = await getBridge();
             const res = await bridge.executeScript({
-                scriptId: 'ai-color-generator',
+                scriptId: SCRIPT_ID,
                 scriptPath: './src/scripts/color/ai-color-generator.jsx',
-                args: {
-                    cmykMode,
-                    cmykC,
-                    cmykM,
-                    cmykY,
-                    cmykK,
-                    labelLang,
-                    spotMode,
-                    spotNames,
-                    simplifyPantone,
-                    style,
-                    labelWidth,
-                    labelHeight,
-                    cornerRadius,
-                    direction,
-                    fontFamily,
-                    fontSize,
-                    order,
-                    placement,
-                    autoSelect,
-                    groupItems,
-                    showInkTotal,
-                    convertToOutlines: convertOL,
-                },
+                args: currentParams,
             });
             const data = (res.data || {}) as { message?: string };
             if (res.success) setMsg(data.message || '完成');
@@ -301,6 +377,7 @@ export const ColorSeparatorPanel: React.FC = () => {
         labelWidth,
         labelHeight,
         cornerRadius,
+        labelGap,
         direction,
         fontFamily,
         fontSize,
@@ -399,6 +476,7 @@ export const ColorSeparatorPanel: React.FC = () => {
                         </>
                     )}
                     {isCircle && <Num label="直径" value={labelWidth} onChange={setW} min={1} max={60} suffix="mm" />}
+                    <Num label="间距" value={labelGap} onChange={setGap} min={0} max={60} suffix="mm" />
                     <SelectField
                         label="方向"
                         value={direction}

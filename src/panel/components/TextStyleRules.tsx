@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getBridge } from '@bridge';
+import { loadPersistedScriptParams, savePersistedScriptParams } from '../utils/scriptParamStorage';
 
 type MatchMode = 'exact' | 'regex';
 type ScopeMode = 'selection' | 'document';
@@ -53,10 +54,15 @@ function isValidHexColor(value: string) {
 }
 
 export const TextStyleRules: React.FC = () => {
-    const [scope, setScope] = useState<ScopeMode>('selection');
-    const [rules, setRules] = useState<TextStyleRule[]>([createRule()]);
+    const savedParams = loadPersistedScriptParams('text-style-rules');
+    const [scope, setScope] = useState<ScopeMode>(savedParams.scope ?? 'selection');
+    const [rules, setRules] = useState<TextStyleRule[]>(Array.isArray(savedParams.rules) && savedParams.rules.length ? savedParams.rules : [createRule()]);
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState<{ type: '' | 'ok' | 'err' | 'info'; text: string }>({ type: '', text: '' });
+
+    useEffect(() => {
+        savePersistedScriptParams('text-style-rules', { scope, rules });
+    }, [scope, rules]);
 
     const updateRule = useCallback((ruleId: string, patch: Partial<TextStyleRule>) => {
         setRules((prev) => prev.map((rule) => (rule.id === ruleId ? { ...rule, ...patch } : rule)));

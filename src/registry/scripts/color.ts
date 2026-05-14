@@ -145,6 +145,7 @@ export const colorScripts: ScriptMetadata[] = [
       { name: 'labelWidth', type: 'number', label: '宽 mm', default: 12, min: 1, step: 0.5 },
       { name: 'labelHeight', type: 'number', label: '高 mm', default: 5, min: 1, step: 0.5 },
       { name: 'cornerRadius', type: 'number', label: '半径 mm', default: 1, min: 0, step: 0.5 },
+      { name: 'labelGap', type: 'number', label: '色块间距 mm', default: 0, min: 0, step: 0.5 },
       {
         name: 'direction',
         type: 'select',

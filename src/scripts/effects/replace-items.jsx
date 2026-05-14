@@ -154,7 +154,7 @@ function startAction() {
         panel.enabled = groupValue.enabled = panelCheckboxes.enabled = ok.enabled = cancel.enabled = false;
 
         var __ratio = !isNaN(parseFloat(randomValue.text)) ? parseFloat(randomValue.text) / 100 : 1,
-            items = (!elementsInGroupCheckbox.value ? selection : selection[selection.length - 1].pageItems),
+            items = getReplacementTargets(),
             nodes = (currentRadio.value ? selection[0] : (bufferRadio.value ? [] : selection[0].pageItems)),
             length = nodes.length,
             i = items.length,
@@ -174,7 +174,7 @@ function startAction() {
         }
 
         while (i--) {
-            if (!bufferRadio.value && !i) break;
+            if (!bufferRadio.value && !elementsInGroupCheckbox.value && !i) break;
             if (j >= nodes.length) j = 0;
             var item = items[i],
                 node = getNode(groupSuccessively.value ? j : undefined).duplicate(item, ElementPlacement.PLACEBEFORE),
@@ -227,6 +227,24 @@ function startAction() {
     }
 
     win.close();
+}
+
+function getReplacementTargets() {
+    if (!elementsInGroupCheckbox.value) return selection;
+
+    var result = [];
+    var startIndex = bufferRadio.value ? 0 : 1;
+    for (var s = startIndex; s < selection.length; s++) {
+        if (selection[s].typename === 'GroupItem') {
+            for (var p = 0; p < selection[s].pageItems.length; p++) {
+                result.push(selection[s].pageItems[p]);
+            }
+        } else {
+            result.push(selection[s]);
+        }
+    }
+
+    return result.length ? result : selection;
 }
 
 function saveSettings() {
@@ -300,12 +318,16 @@ if ($.hopeflow) {
     bufferRadio.value = (mode === 'buffer');
     currentRadio.value = (mode === 'top_object');
     randomRadio.value = (mode === 'random');
+    groupSuccessively.value = (mode === 'group_successive');
 
     fitInSizeCheckbox.value = args.fitInSize === true;
     copyWHCheckbox.value = args.copyWH === true;
     copyColorsCheckbox.value = args.copyColors === true;
     randomRotateCheckbox.value = args.randomRotate === true;
     saveOriginalCheckbox.value = args.saveOriginal === true;
+    elementsInGroupCheckbox.value = args.elementsInAllGroups === true;
+    symbolByRPCheckbox.value = args.symbolByRegistrationPoint === true;
+    randomValue.text = String(args.ratioPercent || randomValue.text || '100');
 
     // Disable UI logic that might interfere
     groupValue.enabled = !copyWHCheckbox.value;
