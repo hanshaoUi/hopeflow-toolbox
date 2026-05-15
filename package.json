@@ -1,7 +1,7 @@
 {
   "name": "hopeflow-toolbox",
-  "version": "3.1.406",
-  "description": "HopeFlow Toolbox v3.1.406 - Professional Illustrator Plugin",
+  "version": "3.1.407",
+  "description": "HopeFlow Toolbox v3.1.407 - Professional Illustrator Plugin",
   "private": true,
   "scripts": {
     "sync:version": "node build/sync-version.js",
@@ -13,6 +13,7 @@
     "build:obfuscate": "ts-node build/obfuscate.ts",
     "build:zxp": "bash build/package-zxp.sh",
     "build:all": "npm run build && npm run build:scripts && npm run build:obfuscate && npm run build:zxp",
+    "test:graphic-relief:native": "cmake --build tools/graphic-relief-native/build --config Release && ctest --test-dir tools/graphic-relief-native/build -C Release --output-on-failure",
     "prepackage:windows": "npm run sync:version",
     "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File build/package-windows-release.ps1",
     "prepackage:release": "npm run sync:version",

@@ -499,6 +499,7 @@ const SPECIAL_UI_SCRIPTS = new Set([
     'data-merge',
     'create-guides',
     'random-irregular-shapes',
+    'graphic-relief',
     'banner-grommets'
 ]);
 
@@ -1420,6 +1421,110 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
         return null;
     }, [script.id]);
 
+    // --- Graphic relief manual preview ---
+    const graphicReliefPreviewActiveRef = useRef(false);
+    const [graphicReliefPreviewVersion, setGraphicReliefPreviewVersion] = useState(0);
+
+    const runGraphicRelief = useCallback(async (mode: 'preview' | 'create' | 'clearPreview') => {
+        if (script.id !== 'graphic-relief') return;
+        setError(null);
+        setInlineResultMessage(null);
+        const shouldUseNative = mode !== 'clearPreview'
+            && (params['useNative'] !== false && params['useNative'] !== 'false');
+
+        const previewOverrides = mode === 'preview'
+            ? {
+                quality: params['quality'] || 'balanced',
+                previewLineLimit: shouldUseNative ? 0 : 56,
+                curvePrecision: Math.max(1.0, Number(params['curvePrecision'] || 0)),
+                sampleStep: Math.max(1.2, Number(params['sampleStep'] || 0)),
+            }
+            : {};
+        const finalParams = normalizeParamsForExecution({
+            ...params,
+            ...previewOverrides,
+            mode,
+        });
+
+        let result: any;
+        if (shouldUseNative) {
+            try {
+                const fs = require('fs') as typeof import('fs');
+                const os = require('os') as typeof import('os');
+                const path = require('path') as typeof import('path');
+                const { execFile } = require('child_process') as typeof import('child_process');
+                let extensionPath = '';
+                try {
+                    if (typeof (window as any).CSInterface !== 'undefined') {
+                        extensionPath = new (window as any).CSInterface().getSystemPath('extension');
+                    }
+                } catch (pathError) { /* ignore */ }
+                const nativeCandidates = [
+                    path.resolve(process.cwd(), 'tools', 'graphic-relief-native', 'build', 'Release', 'graphic_relief_native.exe'),
+                    extensionPath ? path.resolve(extensionPath, 'tools', 'graphic-relief-native', 'build', 'Release', 'graphic_relief_native.exe') : '',
+                    extensionPath ? path.resolve(extensionPath, '..', 'tools', 'graphic-relief-native', 'build', 'Release', 'graphic_relief_native.exe') : '',
+                ].filter(Boolean);
+                const nativeExe = nativeCandidates.find((candidate: string) => fs.existsSync(candidate)) || nativeCandidates[0];
+                if (!fs.existsSync(nativeExe)) {
+                    throw new Error('Native helper 未编译，请先运行 CMake build');
+                }
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hf-relief-'));
+                const inputPath = path.join(tmpDir, 'input.json');
+                const outputPath = path.join(tmpDir, 'output.json');
+
+                const exportResult: any = await executeScriptWithAccess({
+                    ...finalParams,
+                    mode: 'exportNativeInput',
+                });
+                if (!exportResult.success) {
+                    throw new Error(exportResult.error || '导出 Native 输入失败');
+                }
+                const nativeInput = exportResult.data?.nativeInput;
+                if (!nativeInput) throw new Error('Native 输入为空');
+                fs.writeFileSync(inputPath, JSON.stringify(nativeInput), 'utf8');
+
+                await new Promise<void>((resolve, reject) => {
+                    execFile(nativeExe, [inputPath, outputPath], { windowsHide: true, timeout: 120000 }, (err, _stdout, stderr) => {
+                        if (err) reject(new Error(stderr || err.message));
+                        else resolve();
+                    });
+                });
+
+                result = await executeScriptWithAccess({
+                    ...finalParams,
+                    mode: 'importNativeOutput',
+                    nativeOutputPath: outputPath,
+                    nativePreview: mode === 'preview',
+                });
+                try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (cleanupError) { /* ignore */ }
+            } catch (nativeError: any) {
+                result = { success: false, error: nativeError?.message || 'Native 加速失败' };
+            }
+        } else {
+            result = await executeScriptWithAccess(finalParams);
+        }
+
+        if (!result.success) {
+            setError(result.error || (mode === 'preview' ? '预览失败' : '执行失败'));
+            return;
+        }
+        if (mode === 'preview') {
+            graphicReliefPreviewActiveRef.current = true;
+        } else if (mode === 'clearPreview' || mode === 'create') {
+            graphicReliefPreviewActiveRef.current = false;
+        }
+        setGraphicReliefPreviewVersion((v) => v + 1);
+        setInlineResultMessage(getInlineSuccessMessage(result));
+        if (mode === 'create') setShowSuccess(true);
+    }, [executeScriptWithAccess, getInlineSuccessMessage, normalizeParamsForExecution, params, script.id]);
+
+    useEffect(() => {
+        if (script.id !== 'graphic-relief') return;
+        if (!isExpanded && graphicReliefPreviewActiveRef.current) {
+            void runGraphicRelief('clearPreview');
+        }
+    }, [script.id, isExpanded, runGraphicRelief]);
+
     useEffect(() => {
         if (showSuccess) {
             const timer = setTimeout(() => setShowSuccess(false), 2000);
@@ -2212,6 +2317,169 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({ script, isExpanded = fal
     // --- Special UI renderers (no duplicate titles: header row already shows name + info) ---
 
     function renderSpecialUI() {
+        if (script.id === 'graphic-relief') {
+            const getParam = (name: string) => script.params?.find((p) => p.name === name);
+            const sourceMode = String(params['sourceMode'] || 'panel');
+            const text = String(params['text'] || 'SCD');
+            const color = String(params['customColor'] || '#29AEEA');
+            const lineCount = Math.max(8, Math.min(80, Number(params['lineCount'] || 64)));
+            const strength = Math.max(0, Math.min(100, Number(params['embossStrength'] || 82)));
+            const reliefProfile = String(params['reliefProfile'] || 'split');
+            const previewActive = graphicReliefPreviewActiveRef.current;
+            void graphicReliefPreviewVersion;
+
+            const sectionStyle: React.CSSProperties = {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--color-bg-tertiary)',
+            };
+            const titleStyle: React.CSSProperties = {
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--color-text-secondary)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+            };
+            const gridStyle: React.CSSProperties = {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '8px 10px',
+            };
+            const renderField = (name: string, fullWidth = false) => {
+                const p = getParam(name);
+                if (!p) return null;
+                return (
+                    <div key={name} style={fullWidth ? { gridColumn: '1 / -1' } : undefined}>
+                        <label style={{ display: 'block', marginBottom: '3px', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                            {p.label}
+                        </label>
+                        {renderParamInput(p, params, setParams)}
+                    </div>
+                );
+            };
+            const reliefPreviewLines = Array.from({ length: Math.min(34, Math.max(12, Math.round(lineCount / 2))) });
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{
+                        position: 'relative',
+                        height: '148px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--color-bg-primary)',
+                    }}>
+                        <svg width="100%" height="148" viewBox="0 0 360 148" preserveAspectRatio="none" style={{ display: 'block' }}>
+                            {reliefPreviewLines.map((_, i) => {
+                                const y = 18 + i * 3.4;
+                                const inBand = y > 52 && y < 98;
+                                const lift = inBand
+                                    ? reliefProfile === 'split'
+                                        ? (strength / 100) * (y > 75 ? (98 - y) : -(y - 52)) * 0.5
+                                        : (strength / 100) * (98 - y) * 0.55
+                                    : 0;
+                                const d = inBand
+                                    ? `M16 ${y.toFixed(1)} C88 ${y.toFixed(1)} 90 ${(y - lift).toFixed(1)} 130 ${(y - lift).toFixed(1)} C166 ${(y - lift).toFixed(1)} 164 ${(y + lift * 0.35).toFixed(1)} 196 ${(y + lift * 0.35).toFixed(1)} C238 ${(y + lift * 0.35).toFixed(1)} 232 ${(y - lift * 0.85).toFixed(1)} 278 ${(y - lift * 0.85).toFixed(1)} C316 ${(y - lift * 0.85).toFixed(1)} 316 ${y.toFixed(1)} 344 ${y.toFixed(1)}`
+                                    : `M16 ${y.toFixed(1)} L344 ${y.toFixed(1)}`;
+                                return <path key={i} d={d} fill="none" stroke={color} strokeWidth="1.2" strokeLinecap="round" />;
+                            })}
+                            <text
+                                x="180"
+                                y="82"
+                                textAnchor="middle"
+                                fontSize="46"
+                                fontFamily="Georgia, serif"
+                                fill="currentColor"
+                                opacity="0.14"
+                                style={{ color: 'var(--color-text-primary)' }}
+                            >
+                                {text.slice(0, 18)}
+                            </text>
+                        </svg>
+                        <div style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '8px',
+                            fontSize: '10px',
+                            color: previewActive ? 'var(--color-success)' : 'var(--color-text-tertiary)',
+                            background: 'var(--color-bg-secondary)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '999px',
+                            padding: '3px 7px',
+                        }}>
+                            {previewActive ? '文档预览已生成' : '参数示意'}
+                        </div>
+                    </div>
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>来源</div>
+                        <div style={gridStyle}>
+                            {renderField('sourceMode', true)}
+                            {sourceMode === 'panel' && renderField('text', true)}
+                            {sourceMode === 'panel' && renderField('fontSize')}
+                            {sourceMode === 'panel' && renderField('fontName')}
+                            {sourceMode === 'panel' && renderField('textX')}
+                            {sourceMode === 'panel' && renderField('textY')}
+                            {sourceMode === 'selection' && renderField('lineTolerance')}
+                            {sourceMode === 'selection' && renderField('minLineLength')}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', lineHeight: 1.45 }}>
+                            {sourceMode === 'panel'
+                                ? '面板生成会在当前画板内创建文字、平行线和浮雕结果。字体名可留空使用 Illustrator 默认字体。'
+                                : '选区模式需要同时选中水平平行线和文字/闭合图形。'}
+                        </div>
+                    </div>
+
+                    {sourceMode === 'panel' && (
+                        <div style={sectionStyle}>
+                            <div style={titleStyle}>平行线</div>
+                            <div style={gridStyle}>
+                                {renderField('lineCount')}
+                                {renderField('lineSpacing')}
+                                {renderField('widthPct')}
+                                {renderField('lineCenterY')}
+                                {renderField('strokeWidth')}
+                                {renderField('customColor')}
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={sectionStyle}>
+                        <div style={titleStyle}>浮雕识别</div>
+                        <div style={gridStyle}>
+                            {renderField('reliefProfile')}
+                            {renderField('embossStrength')}
+                            {renderField('clearance')}
+                            {renderField('edgeInset')}
+                            {renderField('useNative')}
+                            {renderField('quality')}
+                            {renderField('sampleStep')}
+                            {renderField('smoothing')}
+                            {renderField('curvePrecision')}
+                            {renderField('includeUnchanged')}
+                            {sourceMode === 'panel' && renderField('showTextReference')}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                        <SuccessButton className="btn" onClick={() => runGraphicRelief('preview')} disabled={isExecuting}>
+                            {isExecuting ? <span className="spinner" /> : <><Icon name="play" size={12} /> 预览</>}
+                        </SuccessButton>
+                        <SuccessButton className="btn" onClick={() => runGraphicRelief('clearPreview')} disabled={isExecuting || !previewActive}>
+                            <Icon name="trash" size={12} /> 清除
+                        </SuccessButton>
+                        <SuccessButton className="btn btn-primary" onClick={() => runGraphicRelief('create')} disabled={isExecuting}>
+                            {isExecuting ? <span className="spinner" /> : '应用'}
+                        </SuccessButton>
+                    </div>
+                </div>
+            );
+        }
+
         if (script.id === 'mask-artboards') {
             const paramMap = new Map((script.params || []).map((p) => [p.name, p]));
             const targetParam = paramMap.get('target');
